@@ -1,0 +1,5 @@
+praw
+supabase
+python-dotenv
+openai
+websockets
