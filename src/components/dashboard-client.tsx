@@ -8,8 +8,16 @@ import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { ArrowUp, MessageCircle, Rss, Search, Star } from 'lucide-react';
 
-type Flair = "VIRAL" | "HOT" | "POPULAR" | "NEW";
+type Flair = "VIRAL" | "HOT" | "POPULAR" | "NEW" | "DAILY";
 type Sentiment = "bullish" | "bearish" | "neutral";
+
+export type Comment = {
+  author: string;
+  body: string;
+  score: number;
+  created_utc: number;
+  permalink: string;
+};
 
 export type Post = {
   id: string;
@@ -23,10 +31,12 @@ export type Post = {
   url: string;
   externalUrl?: string;
   sentiment: Sentiment;
+  top_comments?: Comment[];
 };
 
 type ApiResponse = {
   posts: Post[];
+  daily_threads: Post[];
 };
 
 function formatNumber(n: number) {
@@ -60,6 +70,8 @@ function flairBadge(flair: Flair) {
       return <span style={{...baseStyle, backgroundColor: '#fee2e2', color: '#991b1b'}}>Hot</span>;
     case "POPULAR":
       return <span style={{...baseStyle, backgroundColor: '#dbeafe', color: '#1e40af'}}>Popular</span>;
+    case "DAILY":
+      return <span style={{...baseStyle, backgroundColor: '#dcfce7', color: '#166534'}}>Daily Thread</span>;
     default:
       return <span style={{...baseStyle, backgroundColor: '#1a1a1a', color: '#b3b3b3'}}>New</span>;
   }
@@ -168,7 +180,36 @@ function PostCard({ post }: { post: Post }) {
           <div style={{ fontSize: '32px' }}>{sentimentEmoji(post.sentiment)}</div>
         </div>
         
-        {post.externalUrl && (
+        {post.flair === 'DAILY' && post.top_comments && post.top_comments.length > 0 ? (
+          <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #333333' }}>
+            <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#1db954', marginBottom: '12px' }}>
+              🔥 Top Comments:
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {post.top_comments.slice(0, 5).map((comment, index) => (
+                <div key={index} style={{ 
+                  backgroundColor: '#111111', 
+                  padding: '8px 12px', 
+                  borderRadius: '8px',
+                  border: '1px solid #222222'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                    <span style={{ fontSize: '12px', color: '#1db954', fontWeight: '500' }}>
+                      u/{comment.author}
+                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                      <ArrowUp style={{ height: '12px', width: '12px', color: '#1db954' }} />
+                      <span style={{ fontSize: '11px', color: '#999999' }}>{comment.score}</span>
+                    </div>
+                  </div>
+                  <p style={{ fontSize: '12px', color: '#cccccc', lineHeight: '1.4', margin: '0' }}>
+                    {comment.body}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : post.externalUrl ? (
           <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #333333' }}>
             <Link 
               href={post.externalUrl} 
@@ -188,7 +229,7 @@ function PostCard({ post }: { post: Post }) {
               View External Link →
             </Link>
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );
@@ -196,6 +237,7 @@ function PostCard({ post }: { post: Post }) {
 
 export default function DashboardClient() {
   const [posts, setPosts] = useState<Post[] | null>(null);
+  const [dailyThreads, setDailyThreads] = useState<Post[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
   const [query, setQuery] = useState("");
@@ -207,6 +249,7 @@ export default function DashboardClient() {
       const res = await fetch(`/api/wsb-posts`, { cache: "no-store" });
       const data: ApiResponse = await res.json();
       setPosts(data.posts);
+      setDailyThreads(data.daily_threads || []);
       setLastRefresh(new Date());
     } catch (e) {
       console.error(e);
@@ -304,6 +347,19 @@ export default function DashboardClient() {
           </div>
         </div>
       </div>
+
+      {dailyThreads && dailyThreads.length > 0 && (
+        <div style={{ marginBottom: '32px' }}>
+          <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#ffffff', marginBottom: '16px' }}>
+            📌 Daily Threads
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '16px' }}>
+            {dailyThreads.map((thread) => (
+              <PostCard key={thread.id} post={thread} />
+            ))}
+          </div>
+        </div>
+      )}
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
         <div style={{ display: 'flex', gap: '8px' }}>

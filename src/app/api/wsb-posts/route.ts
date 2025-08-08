@@ -1,6 +1,14 @@
 import Redis from 'ioredis'
 import { NextRequest, NextResponse } from 'next/server'
 
+interface RedditComment {
+  author: string
+  body: string
+  score: number
+  created_utc: number
+  permalink: string
+}
+
 interface WSBPost {
   reddit_id: string
   title: string
@@ -11,10 +19,12 @@ interface WSBPost {
   permalink: string
   created_utc: number
   subreddit: string
+  top_comments?: RedditComment[]
 }
 
 interface CachedData {
   posts: WSBPost[]
+  daily_threads: WSBPost[]
   last_updated: string
   total_posts: number
 }
@@ -40,7 +50,7 @@ export async function GET() {
 
     const data: CachedData = JSON.parse(cachedData)
     
-    // Transform data for frontend
+    // Transform regular posts for frontend
     const transformedPosts = data.posts.map((post, index) => ({
       id: post.reddit_id,
       title: post.title,
@@ -52,7 +62,23 @@ export async function GET() {
       rank: index + 1,
       url: post.permalink,
       externalUrl: post.url !== post.permalink ? post.url : undefined,
-      sentiment: 'neutral' as const // Will be enhanced with AI later
+      sentiment: 'neutral' as const
+    }))
+
+    // Transform daily threads
+    const transformedThreads = (data.daily_threads || []).map((thread, index) => ({
+      id: thread.reddit_id,
+      title: thread.title,
+      author: thread.author,
+      createdAt: new Date(thread.created_utc * 1000).toISOString(),
+      flair: 'DAILY' as const,
+      score: thread.score,
+      comments: thread.num_comments,
+      rank: index + 1,
+      url: thread.permalink,
+      externalUrl: thread.url !== thread.permalink ? thread.url : undefined,
+      sentiment: 'neutral' as const,
+      top_comments: thread.top_comments || []
     }))
 
     // Sort by score (most popular first)
@@ -62,7 +88,8 @@ export async function GET() {
     redis.disconnect()
 
     return NextResponse.json({
-      posts: transformedPosts
+      posts: transformedPosts,
+      daily_threads: transformedThreads
     })
 
   } catch (error) {

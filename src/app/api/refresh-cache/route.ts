@@ -1,6 +1,14 @@
 import { NextResponse } from 'next/server'
 import Redis from 'ioredis'
 
+interface RedditComment {
+  author: string
+  body: string
+  score: number
+  created_utc: number
+  permalink: string
+}
+
 interface RedditPost {
   reddit_id: string
   title: string
@@ -11,12 +19,63 @@ interface RedditPost {
   permalink: string
   created_utc: number
   subreddit: string
+  top_comments?: RedditComment[]
 }
 
 interface CacheData {
   posts: RedditPost[]
+  daily_threads: RedditPost[]
   last_updated: string
   total_posts: number
+}
+
+async function fetchTopComments(permalink: string): Promise<RedditComment[]> {
+  try {
+    // Reddit API endpoint for post comments (remove leading slash and add .json)
+    const commentsUrl = `https://www.reddit.com${permalink}.json?sort=top&limit=5`
+    
+    const response = await fetch(commentsUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; stonks-app/1.0; +https://github.com/stonks-app)',
+        'Accept': 'application/json',
+      }
+    })
+    
+    if (!response.ok) {
+      console.log(`Failed to fetch comments for ${permalink}: ${response.status}`)
+      return []
+    }
+    
+    const data = await response.json()
+    
+    // Reddit returns an array: [post_data, comments_data]
+    const commentsData = data[1]?.data?.children || []
+    
+    const topComments: RedditComment[] = []
+    
+    for (const comment of commentsData.slice(0, 5)) {
+      const commentData = comment.data
+      
+      // Skip deleted comments and AutoModerator
+      if (!commentData.body || commentData.body === '[deleted]' || commentData.author === 'AutoModerator') {
+        continue
+      }
+      
+      topComments.push({
+        author: commentData.author,
+        body: commentData.body.length > 200 ? commentData.body.substring(0, 200) + '...' : commentData.body,
+        score: commentData.score,
+        created_utc: commentData.created_utc,
+        permalink: `https://reddit.com${commentData.permalink}`
+      })
+    }
+    
+    return topComments
+    
+  } catch (error) {
+    console.error(`Error fetching comments for ${permalink}:`, error)
+    return []
+  }
 }
 
 export async function POST() {
@@ -48,14 +107,10 @@ export async function POST() {
     console.log("✅ Connected to Reddit API")
     
     const posts_data: RedditPost[] = []
+    const daily_threads: RedditPost[] = []
     
     for (const item of redditData.data.children) {
       const post = item.data
-      
-      // Skip pinned/stickied posts (usually rules/daily threads)
-      if (post.stickied) {
-        continue
-      }
       
       // Prepare post data for cache
       const post_data: RedditPost = {
@@ -70,8 +125,42 @@ export async function POST() {
         subreddit: 'wallstreetbets'
       }
       
-      posts_data.push(post_data)
-      console.log(`📝 Prepared: ${post.title.substring(0, 50)}... (score: ${post.score})`)
+      // Log all stickied posts to see what's available
+      if (post.stickied) {
+        console.log(`🔖 Stickied Post Found: "${post.title}"`)
+      }
+      
+      // Separate daily discussion threads from regular posts
+      // WSB rotates between "Daily Discussion Thread" (market hours) and "What Are Your Moves Tomorrow" (off hours)
+      const title = post.title.toLowerCase()
+      const isDailyThread = (
+        // Market hours thread
+        title.includes('daily discussion thread') ||
+        // Off hours thread  
+        title.includes('what are your moves tomorrow') ||
+        title.includes('moves tomorrow') ||
+        // Alternative patterns
+        (title.includes('daily discussion') && title.includes('thread')) ||
+        // AutoModerator posts with daily in title (common for these threads)
+        (post.author === 'AutoModerator' && (title.includes('daily') || title.includes('moves tomorrow'))) ||
+        // Date-based daily thread patterns
+        title.match(/daily.*thread.*\d{1,2}[\/\-\.]\d{1,2}/i)
+      )
+      
+      if (isDailyThread) {
+        // Fetch top comments for daily threads
+        console.log(`📌 Daily Thread Found: ${post.title.substring(0, 50)}... (comments: ${post.num_comments})`)
+        console.log(`🔄 Fetching top comments for daily thread...`)
+        
+        const topComments = await fetchTopComments(post.permalink)
+        post_data.top_comments = topComments
+        
+        console.log(`✅ Fetched ${topComments.length} top comments`)
+        daily_threads.push(post_data)
+      } else {
+        posts_data.push(post_data)
+        console.log(`📝 Regular Post: ${post.title.substring(0, 50)}... (score: ${post.score})`)
+      }
     }
     
     if (posts_data.length === 0) {
@@ -85,6 +174,7 @@ export async function POST() {
     // Store in Redis cache with 24-hour expiration (for cron setup)
     const cache_data: CacheData = {
       posts: posts_data,
+      daily_threads: daily_threads,
       last_updated: new Date().toISOString(),
       total_posts: posts_data.length
     }
