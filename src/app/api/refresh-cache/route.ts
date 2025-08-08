@@ -25,7 +25,6 @@ export async function POST() {
     
     // Initialize Redis client
     const redis = new Redis(process.env.REDIS_URL!, {
-      retryDelayOnFailover: 100,
       enableReadyCheck: false,
       maxRetriesPerRequest: 1,
     })
@@ -35,7 +34,9 @@ export async function POST() {
     // Fetch hot posts from r/wallstreetbets using Reddit API
     const response = await fetch('https://www.reddit.com/r/wallstreetbets/hot.json?limit=25', {
       headers: {
-        'User-Agent': 'stonks-app:v1.0'
+        'User-Agent': 'Mozilla/5.0 (compatible; stonks-app/1.0; +https://github.com/stonks-app)',
+        'Accept': 'application/json',
+        'Accept-Language': 'en-US,en;q=0.9'
       }
     })
     

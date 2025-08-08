@@ -23,7 +23,6 @@ export async function GET() {
   try {
     // Initialize Redis client
     const redis = new Redis(process.env.REDIS_URL!, {
-      retryDelayOnFailover: 100,
       enableReadyCheck: false,
       maxRetriesPerRequest: 1,
     })
@@ -35,25 +34,24 @@ export async function GET() {
     if (!cachedData) {
       return NextResponse.json({ 
         error: 'No cached data available',
-        message: 'Run the Python scraper first to populate cache'
+        message: 'Trigger cache refresh first at /api/refresh-cache'
       }, { status: 404 })
     }
 
     const data: CachedData = JSON.parse(cachedData)
     
     // Transform data for frontend
-    const transformedPosts = data.posts.map(post => ({
+    const transformedPosts = data.posts.map((post, index) => ({
       id: post.reddit_id,
       title: post.title,
       author: post.author,
-      score: post.score,
-      numComments: post.num_comments,
-      url: post.url,
-      permalink: post.permalink,
       createdAt: new Date(post.created_utc * 1000).toISOString(),
-      subreddit: post.subreddit,
-      // Add some basic analysis
-      isHighEngagement: post.score > 1000 || post.num_comments > 100,
+      flair: post.score > 5000 ? 'VIRAL' : post.score > 2000 ? 'HOT' : post.score > 1000 ? 'POPULAR' : 'NEW',
+      score: post.score,
+      comments: post.num_comments,
+      rank: index + 1,
+      url: post.permalink,
+      externalUrl: post.url !== post.permalink ? post.url : undefined,
       sentiment: 'neutral' as const // Will be enhanced with AI later
     }))
 
@@ -64,15 +62,7 @@ export async function GET() {
     redis.disconnect()
 
     return NextResponse.json({
-      success: true,
-      posts: transformedPosts,
-      metadata: {
-        totalPosts: transformedPosts.length,
-        lastUpdated: lastUpdated || data.last_updated,
-        highEngagementPosts: transformedPosts.filter(p => p.isHighEngagement).length,
-        averageScore: Math.round(transformedPosts.reduce((sum, p) => sum + p.score, 0) / transformedPosts.length),
-        topPost: transformedPosts[0]?.title.substring(0, 100) + '...' || null
-      }
+      posts: transformedPosts
     })
 
   } catch (error) {
