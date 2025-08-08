@@ -89,17 +89,17 @@ function PostCard({ post }: { post: Post }) {
     <div style={{ 
       backgroundColor: '#0a0a0a', 
       borderRadius: '16px', 
-      border: '1px solid #1a1a1a', 
+      border: '2px solid #1db954', 
       boxShadow: '0 8px 32px rgb(0 0 0 / 0.4)',
       transition: 'all 0.2s ease',
       cursor: 'pointer'
     }} 
     onMouseEnter={(e) => {
-      e.currentTarget.style.border = '1px solid #1db954';
+      e.currentTarget.style.border = '2px solid #22c55e';
       e.currentTarget.style.backgroundColor = '#111111';
     }}
     onMouseLeave={(e) => {
-      e.currentTarget.style.border = '1px solid #1a1a1a';
+      e.currentTarget.style.border = '2px solid #1db954';
       e.currentTarget.style.backgroundColor = '#0a0a0a';
     }}>
       <div style={{ padding: '24px' }}>
@@ -226,17 +226,24 @@ export default function DashboardClient() {
 
   return (
     <div className="space-y-8">
-      <header className="text-center mb-8">
-        <h1 className="text-5xl font-bold tracking-tight text-white sm:text-6xl">
+      <div style={{ 
+        backgroundColor: '#0a0a0a', 
+        borderRadius: '16px', 
+        border: '2px solid #1db954', 
+        padding: '32px',
+        textAlign: 'center',
+        marginBottom: '32px'
+      }}>
+        <h1 style={{ fontSize: '48px', fontWeight: 'bold', color: '#ffffff', margin: '0', lineHeight: '1.1' }}>
           🚀📈 r/WallStreetBets Dashboard
         </h1>
-        <p className="mt-4 text-xl text-green-400 max-w-3xl mx-auto">
+        <p style={{ marginTop: '16px', fontSize: '20px', color: '#1db954', margin: '16px auto 0', maxWidth: '768px' }}>
           Real-time sentiment and trends from the world's most degenerate trading floor.
         </p>
-      </header>
+      </div>
 
       <div style={{ display: 'flex', gap: '24px', marginBottom: '32px' }}>
-        <div style={{ flex: '1', backgroundColor: '#1a1a1a', borderRadius: '12px', padding: '24px', border: '1px solid #333333' }}>
+        <div style={{ flex: '1', backgroundColor: '#0a0a0a', borderRadius: '12px', padding: '24px', border: '2px solid #1db954' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
               <p style={{ fontSize: '14px', fontWeight: '500', color: '#888888', textTransform: 'uppercase', letterSpacing: '0.05em' }}>TOTAL POSTS</p>
@@ -249,7 +256,7 @@ export default function DashboardClient() {
           </div>
         </div>
         
-        <div style={{ flex: '1', backgroundColor: '#1a1a1a', borderRadius: '12px', padding: '24px', border: '1px solid #333333' }}>
+        <div style={{ flex: '1', backgroundColor: '#0a0a0a', borderRadius: '12px', padding: '24px', border: '2px solid #1db954' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
               <p style={{ fontSize: '14px', fontWeight: '500', color: '#888888', textTransform: 'uppercase', letterSpacing: '0.05em' }}>HIGH ENGAGEMENT</p>
@@ -262,7 +269,7 @@ export default function DashboardClient() {
           </div>
         </div>
         
-        <div style={{ flex: '1', backgroundColor: '#1a1a1a', borderRadius: '12px', padding: '24px', border: '1px solid #333333' }}>
+        <div style={{ flex: '1', backgroundColor: '#0a0a0a', borderRadius: '12px', padding: '24px', border: '2px solid #1db954' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
               <p style={{ fontSize: '14px', fontWeight: '500', color: '#888888', textTransform: 'uppercase', letterSpacing: '0.05em' }}>AVG SCORE</p>
@@ -275,7 +282,7 @@ export default function DashboardClient() {
           </div>
         </div>
         
-        <div style={{ flex: '1', backgroundColor: '#1a1a1a', borderRadius: '12px', padding: '24px', border: '1px solid #333333' }}>
+        <div style={{ flex: '1', backgroundColor: '#0a0a0a', borderRadius: '12px', padding: '24px', border: '2px solid #1db954' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
               <p style={{ fontSize: '14px', fontWeight: '500', color: '#888888', textTransform: 'uppercase', letterSpacing: '0.05em' }}>BULLISH POSTS</p>
@@ -289,40 +296,104 @@ export default function DashboardClient() {
         </div>
       </div>
 
-      <div>
-        <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <TabsList className="bg-zinc-900/60 border-emerald-500/15">
-              <TabsTrigger value="ALL" className="data-[state=active]:bg-emerald-500 data-[state=active]:text-black">All</TabsTrigger>
-              <TabsTrigger value="VIRAL" className="data-[state=active]:bg-emerald-500 data-[state=active]:text-black">Viral</TabsTrigger>
-              <TabsTrigger value="HOT" className="data-[state=active]:bg-emerald-500 data-[state=active]:text-black">Hot</TabsTrigger>
-              <TabsTrigger value="POPULAR" className="data-[state=active]:bg-emerald-500 data-[state=active]:text-black">Popular</TabsTrigger>
-            </TabsList>
-            <div className="relative w-full sm:w-[320px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search posts..."
-                className="pl-9 bg-zinc-900/60 border-emerald-500/15 focus-visible:ring-emerald-500/30"
-              />
-            </div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button
+            onClick={() => setTab("ALL")}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '8px',
+              border: '2px solid #1db954',
+              backgroundColor: tab === "ALL" ? '#1db954' : '#0a0a0a',
+              color: tab === "ALL" ? '#000000' : '#ffffff',
+              fontSize: '14px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            All
+          </button>
+          <button
+            onClick={() => setTab("VIRAL")}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '8px',
+              border: '2px solid #1db954',
+              backgroundColor: tab === "VIRAL" ? '#1db954' : '#0a0a0a',
+              color: tab === "VIRAL" ? '#000000' : '#ffffff',
+              fontSize: '14px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            Viral
+          </button>
+          <button
+            onClick={() => setTab("HOT")}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '8px',
+              border: '2px solid #1db954',
+              backgroundColor: tab === "HOT" ? '#1db954' : '#0a0a0a',
+              color: tab === "HOT" ? '#000000' : '#ffffff',
+              fontSize: '14px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            Hot
+          </button>
+          <button
+            onClick={() => setTab("POPULAR")}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '8px',
+              border: '2px solid #1db954',
+              backgroundColor: tab === "POPULAR" ? '#1db954' : '#0a0a0a',
+              color: tab === "POPULAR" ? '#000000' : '#ffffff',
+              fontSize: '14px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            Popular
+          </button>
+        </div>
+        
+        <div className="relative w-[320px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: '#1db954' }} />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search posts..."
+            style={{
+              width: '100%',
+              padding: '8px 12px 8px 40px',
+              borderRadius: '8px',
+              border: '2px solid #1db954',
+              backgroundColor: '#0a0a0a',
+              color: '#ffffff',
+              fontSize: '14px',
+              outline: 'none'
+            }}
+          />
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '24px' }}>
+        {filtered.map((post) => (
+          <PostCard key={post.id} post={post} />
+        ))}
+        {filtered.length === 0 && (
+          <div style={{ gridColumn: '1 / -1', textAlign: 'center', color: '#6b7280', padding: '64px 0' }}>
+            <p style={{ fontSize: '18px', fontWeight: '500' }}>No posts found</p>
+            <p>Try adjusting your search or filters.</p>
           </div>
-          
-          <TabsContent value={tab} className="mt-6">
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '24px' }}>
-              {filtered.map((post) => (
-                <PostCard key={post.id} post={post} />
-              ))}
-              {filtered.length === 0 && (
-                <div style={{ gridColumn: '1 / -1', textAlign: 'center', color: '#6b7280', padding: '64px 0' }}>
-                  <p style={{ fontSize: '18px', fontWeight: '500' }}>No posts found</p>
-                  <p>Try adjusting your search or filters.</p>
-                </div>
-              )}
-            </div>
-          </TabsContent>
-        </Tabs>
+        )}
       </div>
 
       <footer className="text-center text-sm text-muted-foreground">
