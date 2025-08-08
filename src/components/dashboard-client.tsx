@@ -89,31 +89,40 @@ function PostCard({ post }: { post: Post }) {
     <div style={{ 
       backgroundColor: '#0a0a0a', 
       borderRadius: '16px', 
-      border: '2px solid #1db954', 
+      border: '1px solid #333333', 
       boxShadow: '0 8px 32px rgb(0 0 0 / 0.4)',
       transition: 'all 0.2s ease',
       cursor: 'pointer'
     }} 
     onMouseEnter={(e) => {
-      e.currentTarget.style.border = '2px solid #22c55e';
+      e.currentTarget.style.border = '1px solid #555555';
       e.currentTarget.style.backgroundColor = '#111111';
     }}
     onMouseLeave={(e) => {
-      e.currentTarget.style.border = '2px solid #1db954';
+      e.currentTarget.style.border = '1px solid #333333';
       e.currentTarget.style.backgroundColor = '#0a0a0a';
     }}>
       <div style={{ padding: '24px' }}>
         <Meta post={post} />
-        <Link href={post.url} target="_blank" className="block mt-3">
+        <Link 
+          href={post.url} 
+          target="_blank" 
+          style={{ 
+            display: 'block', 
+            marginTop: '12px', 
+            textDecoration: 'none' 
+          }}
+        >
           <h3 style={{ 
             fontSize: '18px', 
             fontWeight: '600', 
-            color: '#ffffff', 
-            marginTop: '12px',
-            lineHeight: '1.4'
+            color: '#999999', 
+            marginTop: '0',
+            lineHeight: '1.4',
+            textDecoration: 'none'
           }}
-          onMouseEnter={(e) => e.currentTarget.style.color = '#1db954'}
-          onMouseLeave={(e) => e.currentTarget.style.color = '#ffffff'}>
+          onMouseEnter={(e) => e.currentTarget.style.color = '#999999'}
+          onMouseLeave={(e) => e.currentTarget.style.color = '#999999'}>
             {post.title}
           </h3>
         </Link>
@@ -166,15 +175,15 @@ function PostCard({ post }: { post: Post }) {
               target="_blank" 
               style={{ 
                 fontSize: '14px', 
-                color: '#1db954', 
+                color: '#999999', 
                 fontWeight: '500', 
                 display: 'inline-flex', 
                 alignItems: 'center', 
                 gap: '4px',
                 textDecoration: 'none'
               }}
-              onMouseEnter={(e) => e.currentTarget.style.color = '#22c55e'}
-              onMouseLeave={(e) => e.currentTarget.style.color = '#1db954'}
+              onMouseEnter={(e) => e.currentTarget.style.color = '#999999'}
+              onMouseLeave={(e) => e.currentTarget.style.color = '#999999'}
             >
               View External Link →
             </Link>
@@ -225,11 +234,11 @@ export default function DashboardClient() {
   const bullishCount = posts?.filter(p => p.sentiment === 'bullish').length ?? 0;
 
   return (
-    <div className="space-y-8">
+    <div style={{ backgroundColor: '#000000', padding: '0', margin: '0' }}>
       <div style={{ 
         backgroundColor: '#0a0a0a', 
         borderRadius: '16px', 
-        border: '2px solid #1db954', 
+        border: '1px solid #333333', 
         padding: '32px',
         textAlign: 'center',
         marginBottom: '32px'
@@ -243,7 +252,7 @@ export default function DashboardClient() {
       </div>
 
       <div style={{ display: 'flex', gap: '24px', marginBottom: '32px' }}>
-        <div style={{ flex: '1', backgroundColor: '#0a0a0a', borderRadius: '12px', padding: '24px', border: '2px solid #1db954' }}>
+        <div style={{ flex: '1', backgroundColor: '#0a0a0a', borderRadius: '12px', padding: '24px', border: '1px solid #333333' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
               <p style={{ fontSize: '14px', fontWeight: '500', color: '#888888', textTransform: 'uppercase', letterSpacing: '0.05em' }}>TOTAL POSTS</p>
@@ -256,7 +265,7 @@ export default function DashboardClient() {
           </div>
         </div>
         
-        <div style={{ flex: '1', backgroundColor: '#0a0a0a', borderRadius: '12px', padding: '24px', border: '2px solid #1db954' }}>
+        <div style={{ flex: '1', backgroundColor: '#0a0a0a', borderRadius: '12px', padding: '24px', border: '1px solid #333333' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
               <p style={{ fontSize: '14px', fontWeight: '500', color: '#888888', textTransform: 'uppercase', letterSpacing: '0.05em' }}>HIGH ENGAGEMENT</p>
@@ -269,7 +278,7 @@ export default function DashboardClient() {
           </div>
         </div>
         
-        <div style={{ flex: '1', backgroundColor: '#0a0a0a', borderRadius: '12px', padding: '24px', border: '2px solid #1db954' }}>
+        <div style={{ flex: '1', backgroundColor: '#0a0a0a', borderRadius: '12px', padding: '24px', border: '1px solid #333333' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
               <p style={{ fontSize: '14px', fontWeight: '500', color: '#888888', textTransform: 'uppercase', letterSpacing: '0.05em' }}>AVG SCORE</p>
@@ -282,7 +291,7 @@ export default function DashboardClient() {
           </div>
         </div>
         
-        <div style={{ flex: '1', backgroundColor: '#0a0a0a', borderRadius: '12px', padding: '24px', border: '2px solid #1db954' }}>
+        <div style={{ flex: '1', backgroundColor: '#0a0a0a', borderRadius: '12px', padding: '24px', border: '1px solid #333333' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
               <p style={{ fontSize: '14px', fontWeight: '500', color: '#888888', textTransform: 'uppercase', letterSpacing: '0.05em' }}>BULLISH POSTS</p>
@@ -303,9 +312,9 @@ export default function DashboardClient() {
             style={{
               padding: '8px 16px',
               borderRadius: '8px',
-              border: '2px solid #1db954',
-              backgroundColor: tab === "ALL" ? '#1db954' : '#0a0a0a',
-              color: tab === "ALL" ? '#000000' : '#ffffff',
+              border: '1px solid #333333',
+              backgroundColor: tab === "ALL" ? '#333333' : '#0a0a0a',
+              color: '#ffffff',
               fontSize: '14px',
               fontWeight: '600',
               cursor: 'pointer',
@@ -319,9 +328,9 @@ export default function DashboardClient() {
             style={{
               padding: '8px 16px',
               borderRadius: '8px',
-              border: '2px solid #1db954',
-              backgroundColor: tab === "VIRAL" ? '#1db954' : '#0a0a0a',
-              color: tab === "VIRAL" ? '#000000' : '#ffffff',
+              border: '1px solid #333333',
+              backgroundColor: tab === "VIRAL" ? '#333333' : '#0a0a0a',
+              color: '#ffffff',
               fontSize: '14px',
               fontWeight: '600',
               cursor: 'pointer',
@@ -335,9 +344,9 @@ export default function DashboardClient() {
             style={{
               padding: '8px 16px',
               borderRadius: '8px',
-              border: '2px solid #1db954',
-              backgroundColor: tab === "HOT" ? '#1db954' : '#0a0a0a',
-              color: tab === "HOT" ? '#000000' : '#ffffff',
+              border: '1px solid #333333',
+              backgroundColor: tab === "HOT" ? '#333333' : '#0a0a0a',
+              color: '#ffffff',
               fontSize: '14px',
               fontWeight: '600',
               cursor: 'pointer',
@@ -351,9 +360,9 @@ export default function DashboardClient() {
             style={{
               padding: '8px 16px',
               borderRadius: '8px',
-              border: '2px solid #1db954',
-              backgroundColor: tab === "POPULAR" ? '#1db954' : '#0a0a0a',
-              color: tab === "POPULAR" ? '#000000' : '#ffffff',
+              border: '1px solid #333333',
+              backgroundColor: tab === "POPULAR" ? '#333333' : '#0a0a0a',
+              color: '#ffffff',
               fontSize: '14px',
               fontWeight: '600',
               cursor: 'pointer',
@@ -364,8 +373,17 @@ export default function DashboardClient() {
           </button>
         </div>
         
-        <div className="relative w-[320px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: '#1db954' }} />
+        <div style={{ position: 'relative', width: '320px' }}>
+          <Search style={{ 
+            position: 'absolute', 
+            left: '12px', 
+            top: '50%', 
+            transform: 'translateY(-50%)', 
+            height: '16px', 
+            width: '16px', 
+            color: '#666666',
+            pointerEvents: 'none'
+          }} />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -374,11 +392,13 @@ export default function DashboardClient() {
               width: '100%',
               padding: '8px 12px 8px 40px',
               borderRadius: '8px',
-              border: '2px solid #1db954',
+              border: '1px solid #333333',
               backgroundColor: '#0a0a0a',
               color: '#ffffff',
               fontSize: '14px',
-              outline: 'none'
+              outline: 'none',
+              height: '40px',
+              boxSizing: 'border-box'
             }}
           />
         </div>

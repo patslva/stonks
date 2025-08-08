@@ -2,8 +2,8 @@ import DashboardClient from "@/components/dashboard-client";
 
 export default async function Page() {
   return (
-    <main className="min-h-dvh" style={{ backgroundColor: '#000000' }}>
-      <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-6 lg:py-10">
+    <main style={{ backgroundColor: '#000000', minHeight: '100vh', padding: '0', margin: '0' }}>
+      <div style={{ backgroundColor: '#000000', maxWidth: '1280px', margin: '0 auto', padding: '32px 16px' }}>
         <DashboardClient />
       </div>
     </main>
