@@ -2,6 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { LineChart, Rocket, CalendarClock, ArrowUpRight, ArrowDownRight, Search } from 'lucide-react'
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button" 
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 interface StockData {
   c: number // current price
@@ -27,6 +33,133 @@ interface StockQuote {
   error?: string
 }
 
+const KPICard = ({ title, value, change, icon: Icon, isIndex = false }: {
+  title: string
+  value: string | number
+  change?: number
+  icon: any
+  isIndex?: boolean
+}) => (
+  <div style={{ 
+    flex: '1', 
+    backgroundColor: '#0a0a0a', 
+    borderRadius: '12px', 
+    padding: '24px', 
+    border: '1px solid #333333',
+    transition: 'all 0.2s ease',
+    cursor: 'pointer'
+  }}
+  onMouseEnter={(e) => {
+    e.currentTarget.style.border = '1px solid #555555';
+    e.currentTarget.style.backgroundColor = '#111111';
+  }}
+  onMouseLeave={(e) => {
+    e.currentTarget.style.border = '1px solid #333333';
+    e.currentTarget.style.backgroundColor = '#0a0a0a';
+  }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div>
+        <p style={{ fontSize: '14px', fontWeight: '500', color: '#888888', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          {title}
+        </p>
+        <p style={{ fontSize: isIndex ? '32px' : '48px', fontWeight: 'bold', color: '#ffffff', marginTop: '4px', lineHeight: '1' }}>
+          {typeof value === 'number' ? (isIndex ? `$${value.toFixed(2)}` : value.toLocaleString()) : value}
+        </p>
+        {change !== undefined && (
+          <p style={{ 
+            fontSize: '12px', 
+            color: change >= 0 ? '#1db954' : '#ff6b6b', 
+            marginTop: '4px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px'
+          }}>
+            {change >= 0 ? '▲' : '▼'} {change >= 0 ? '+' : ''}{change.toFixed(2)}%
+          </p>
+        )}
+      </div>
+      <div style={{ 
+        height: '48px', 
+        width: '48px', 
+        backgroundColor: '#1db954', 
+        borderRadius: '8px', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center' 
+      }}>
+        <Icon style={{ height: '24px', width: '24px', color: '#000000' }} />
+      </div>
+    </div>
+  </div>
+)
+
+const StockRow = ({ stock }: { stock: any }) => (
+  <div style={{ 
+    display: 'flex', 
+    alignItems: 'center', 
+    justifyContent: 'space-between', 
+    padding: '16px',
+    borderBottom: '1px solid #333333',
+    transition: 'background-color 0.2s ease',
+    cursor: 'pointer'
+  }}
+  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#111111'}
+  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+  onClick={() => window.location.href = `/stock/${stock.symbol}`}
+  >
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <div style={{ 
+        width: '40px', 
+        height: '40px', 
+        backgroundColor: '#1a1a1a', 
+        borderRadius: '8px', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        border: '1px solid #333333'
+      }}>
+        {stock.profile?.logo ? (
+          <img 
+            src={stock.profile.logo} 
+            alt={`${stock.symbol} logo`}
+            style={{ width: '24px', height: '24px', borderRadius: '4px', objectFit: 'contain' }}
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+              e.currentTarget.parentElement!.textContent = stock.symbol.slice(0, 2);
+            }}
+          />
+        ) : (
+          <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#ffffff' }}>
+            {stock.symbol.slice(0, 2)}
+          </span>
+        )}
+      </div>
+      <div>
+        <p style={{ fontWeight: '600', color: '#ffffff', margin: '0' }}>{stock.symbol}</p>
+        <p style={{ fontSize: '12px', color: '#888888', margin: '0', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {stock.profile?.name || stock.name || ''}
+        </p>
+      </div>
+    </div>
+    <div style={{ textAlign: 'right' }}>
+      <p style={{ fontWeight: '600', color: '#ffffff', margin: '0' }}>
+        ${stock.data?.c?.toFixed(2) || stock.price?.toFixed(2) || 'N/A'}
+      </p>
+      <p style={{ 
+        fontSize: '12px', 
+        color: (stock.data?.dp || stock.change || 0) >= 0 ? '#1db954' : '#ff6b6b', 
+        margin: '0',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'flex-end',
+        gap: '4px'
+      }}>
+        {(stock.data?.dp || stock.change || 0) >= 0 ? '▲' : '▼'} 
+        {(stock.data?.dp || stock.change || 0) >= 0 ? '+' : ''}{(stock.data?.dp || stock.change || 0).toFixed(2)}%
+      </p>
+    </div>
+  </div>
+)
 
 export default function Home() {
   const [refreshing, setRefreshing] = useState(false)
@@ -149,42 +282,93 @@ export default function Home() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-24">
-      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm">
-        <h1 className="text-4xl font-bold text-center mb-8">
-          Stonks 📈
-        </h1>
-        <p className="text-xl text-center text-gray-600 mb-4">
-          AI-powered stock analysis with Reddit sentiment
-        </p>
-        
-        {refreshing ? (
-          <div className="text-center mb-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-            <p className="text-sm text-gray-500">Refreshing Reddit data...</p>
+    <main style={{ minHeight: '100vh', backgroundColor: '#000000', color: '#ffffff', padding: '0' }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '40px 20px' }}>
+        {/* Clean Header like Image 1 */}
+        <header style={{ textAlign: 'center', marginBottom: '48px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '16px' }}>
+            <LineChart style={{ height: '28px', width: '28px', color: '#ffffff' }} />
+            <h1 style={{ fontSize: '42px', fontWeight: 'bold', color: '#ffffff', margin: '0' }}>
+              Stonks
+            </h1>
+            <Rocket style={{ height: '24px', width: '24px', color: '#1db954' }} />
           </div>
-        ) : lastRefresh ? (
-          <p className="text-center text-sm text-green-600 mb-8">
-            ✅ Data refreshed at {lastRefresh}
+          
+          <p style={{ fontSize: '18px', color: '#888888', marginBottom: '24px' }}>
+            AI-powered stock analysis with Reddit sentiment
           </p>
-        ) : null}
-        
-        <div className="text-center mb-8">
-          <Link 
-            href="/dashboard" 
-            className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            View Dashboard →
-          </Link>
-        </div>
+          
+          <div style={{ 
+            display: 'inline-flex', 
+            alignItems: 'center', 
+            gap: '12px', 
+            backgroundColor: '#1a1a1a',
+            border: '1px solid #333333',
+            borderRadius: '50px',
+            padding: '12px 24px',
+            marginBottom: '24px'
+          }}>
+            <div style={{ 
+              backgroundColor: '#1db954', 
+              color: '#000000', 
+              padding: '4px 12px', 
+              borderRadius: '20px', 
+              fontSize: '12px', 
+              fontWeight: '600' 
+            }}>
+              {refreshing ? 'Refreshing...' : 'Data OK'}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', color: '#888888' }}>
+              <CalendarClock style={{ height: '14px', width: '14px' }} />
+              Refreshed at {lastRefresh || new Date().toLocaleTimeString()}
+            </div>
+          </div>
+          
+          <div style={{ marginBottom: '32px' }}>
+            <Link 
+              href="/dashboard" 
+              style={{ 
+                color: '#ffffff', 
+                textDecoration: 'underline',
+                textDecorationColor: '#888888',
+                textUnderlineOffset: '4px',
+                fontSize: '16px',
+                fontWeight: '500'
+              }}
+            >
+              View Dashboard →
+            </Link>
+          </div>
+        </header>
 
-        {/* Stock Search */}
-        <div className="max-w-md mx-auto mb-8">
-          <div className="relative">
+        {/* Clean Search Section */}
+        <div style={{ maxWidth: '600px', margin: '0 auto 48px auto' }}>
+          <div style={{ position: 'relative' }}>
+            <Search style={{ 
+              position: 'absolute', 
+              left: '20px', 
+              top: '50%', 
+              transform: 'translateY(-50%)', 
+              height: '20px', 
+              width: '20px', 
+              color: '#666666' 
+            }} />
             <input
               type="text"
-              placeholder="Search stocks (e.g., AAPL, TSLA)..."
-              className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Search stocks (e.g., AAPL, TSLA) and press Enter…"
+              style={{
+                width: '100%',
+                padding: '16px 20px 16px 52px',
+                backgroundColor: '#1a1a1a',
+                border: '2px solid #333333',
+                borderRadius: '50px',
+                color: '#ffffff',
+                fontSize: '16px',
+                outline: 'none',
+                transition: 'border-color 0.2s ease'
+              }}
+              onFocus={(e) => e.currentTarget.style.borderColor = '#1db954'}
+              onBlur={(e) => e.currentTarget.style.borderColor = '#333333'}
               onKeyPress={(e) => {
                 if (e.key === 'Enter') {
                   const target = e.target as HTMLInputElement
@@ -195,251 +379,84 @@ export default function Home() {
                 }
               }}
             />
-            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-              <svg 
-                className="w-5 h-5 text-gray-400" 
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round" 
-                  strokeWidth={2} 
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" 
-                />
-              </svg>
-            </div>
           </div>
-          <p className="text-sm text-gray-500 mt-2 text-center">
+          <p style={{ textAlign: 'center', fontSize: '14px', color: '#666666', marginTop: '12px' }}>
             Press Enter to view detailed stock information
           </p>
         </div>
 
-        {/* Market Overview */}
-        <div className="mt-12 mb-12">
-          <h2 className="text-2xl font-bold text-center mb-8">📊 Market Overview</h2>
+        {/* Market Overview - KPI Cards */}
+        <div style={{ marginBottom: '32px' }}>
+          <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#ffffff', marginBottom: '16px' }}>
+            📊 Market Overview
+          </h2>
           
           {loadingMarketData ? (
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-              <p className="text-sm text-gray-500">Loading market data...</p>
+            <div style={{ textAlign: 'center', padding: '32px' }}>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600 mx-auto mb-2"></div>
+              <p style={{ fontSize: '14px', color: '#888888' }}>Loading market data...</p>
             </div>
           ) : (
-            <div className="space-y-8">
-              {/* Market Indices */}
-              <div>
-                <h3 className="text-lg font-semibold mb-4 text-gray-900">Market Indices</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {indices.map((index) => (
-                    <div key={index.symbol} className="bg-white rounded-lg border p-4 text-center">
-                      <h4 className="font-semibold text-gray-900 mb-1">{index.name}</h4>
-                      <p className="text-sm text-gray-600 mb-2">{index.symbol}</p>
-                      {index.data && index.data.c ? (
-                        <>
-                          <p className="text-xl font-bold text-gray-900">
-                            ${index.data.c.toFixed(2)}
-                          </p>
-                          <p className={`text-sm ${
-                            (index.data.d || 0) >= 0 ? 'text-green-600' : 'text-red-600'
-                          }`}>
-                            {(index.data.d || 0) >= 0 ? '+' : ''}{index.data.d?.toFixed(2) || '0.00'} 
-                            ({(index.data.dp || 0) >= 0 ? '+' : ''}{index.data.dp?.toFixed(2) || '0.00'}%)
-                          </p>
-                        </>
-                      ) : (
-                        <p className="text-sm text-gray-500">No data</p>
-                      )}
-                    </div>
-                  ))}
-                </div>
+            <>
+              {/* Market Indices KPI Cards */}
+              <div style={{ display: 'flex', gap: '24px', marginBottom: '32px', flexWrap: 'wrap' }}>
+                {indices.slice(0, 4).map((index) => (
+                  <KPICard
+                    key={index.symbol}
+                    title={index.name}
+                    value={index.data?.c || 0}
+                    change={index.data?.dp}
+                    icon={LineChart}
+                    isIndex={true}
+                  />
+                ))}
               </div>
 
-              {/* Market Movers */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* Top Gainers */}
-                <div>
-                  <h3 className="text-lg font-semibold mb-4 text-green-700">🚀 Top Gainers</h3>
-                  <div className="space-y-3">
-                    {movers.gainers.slice(0, 5).map((stock) => (
-                      <Link
-                        key={stock.symbol}
-                        href={`/stock/${stock.symbol}`}
-                        className="flex items-center justify-between p-3 bg-white rounded-lg border hover:shadow-md transition-shadow"
-                      >
-                        <div className="flex items-center gap-2">
-                          {stock.profile?.logo && (
-                            <img 
-                              src={stock.profile.logo} 
-                              alt={`${stock.symbol} logo`}
-                              className="w-3 h-3 rounded"
-                              style={{ width: '80px', height: '80px', maxWidth: '80px', maxHeight: '80px' }}
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none';
-                              }}
-                            />
-                          )}
-                          <div>
-                            <p className="font-semibold text-gray-900">{stock.symbol}</p>
-                            <p className="text-xs text-gray-600 truncate max-w-[120px]">
-                              {stock.profile?.name || ''}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-semibold text-gray-900">
-                            ${stock.data.c?.toFixed(2) || 'N/A'}
-                          </p>
-                          <p className="text-sm text-green-600">
-                            +{stock.data.dp?.toFixed(2) || '0.00'}%
-                          </p>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Top Losers */}
-                <div>
-                  <h3 className="text-lg font-semibold mb-4 text-red-700">📉 Top Losers</h3>
-                  <div className="space-y-3">
-                    {movers.losers.slice(0, 5).map((stock) => (
-                      <Link
-                        key={stock.symbol}
-                        href={`/stock/${stock.symbol}`}
-                        className="flex items-center justify-between p-3 bg-white rounded-lg border hover:shadow-md transition-shadow"
-                      >
-                        <div className="flex items-center gap-2">
-                          {stock.profile?.logo && (
-                            <img 
-                              src={stock.profile.logo} 
-                              alt={`${stock.symbol} logo`}
-                              className="w-3 h-3 rounded"
-                              style={{ width: '80px', height: '80px', maxWidth: '80px', maxHeight: '80px' }}
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none';
-                              }}
-                            />
-                          )}
-                          <div>
-                            <p className="font-semibold text-gray-900">{stock.symbol}</p>
-                            <p className="text-xs text-gray-600 truncate max-w-[120px]">
-                              {stock.profile?.name || ''}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-semibold text-gray-900">
-                            ${stock.data.c?.toFixed(2) || 'N/A'}
-                          </p>
-                          <p className="text-sm text-red-600">
-                            {stock.data.dp?.toFixed(2) || '0.00'}%
-                          </p>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-        
-        <div className="mt-12">
-          <h2 className="text-2xl font-bold text-center mb-8">📈 Top Market Performers</h2>
-          {loadingTickers ? (
-            <div className="text-center mb-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-              <p className="text-sm text-gray-500">Loading market data...</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {stocks.map((stock) => (
-              <Link 
-                key={stock.symbol} 
-                href={`/stock/${stock.symbol}`}
-                className="p-6 border rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3 min-w-0">
-                    {stock.profile?.logo && (
-                      <img 
-                        src={stock.profile.logo} 
-                        alt={`${stock.symbol} logo`}
-                        className="w-3 h-3 rounded"
-                        style={{ width: '80px', height: '80px', maxWidth: '80px', maxHeight: '80px' }}
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                        }}
-                      />
-                    )}
-                    <div className="min-w-0">
-                      <h3 className="text-xl font-bold text-gray-900">{stock.symbol}</h3>
-                      {stock.profile?.name && (
-                        <p className="text-sm text-gray-600 truncate max-w-[200px]">
-                          {stock.profile.name}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  {stock.loading && (
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                  )}
+              {/* Top Movers Section */}
+              <div style={{ 
+                backgroundColor: '#0a0a0a', 
+                borderRadius: '16px', 
+                border: '1px solid #333333', 
+                boxShadow: '0 8px 32px rgb(0 0 0 / 0.4)'
+              }}>
+                <div style={{ padding: '24px', borderBottom: '1px solid #333333' }}>
+                  <h3 style={{ fontSize: '20px', fontWeight: 'bold', color: '#ffffff', margin: '0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    🚀 Top Movers
+                  </h3>
                 </div>
                 
-                {stock.data && stock.data.c !== null ? (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0' }}>
+                  {/* Top Gainers */}
                   <div>
-                    <div className="text-3xl font-bold text-gray-900 mb-2">
-                      ${stock.data.c?.toFixed(2) || 'N/A'}
+                    <div style={{ padding: '16px 24px', backgroundColor: '#1db954', color: '#000000' }}>
+                      <h4 style={{ fontSize: '16px', fontWeight: '600', margin: '0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        ▲ Top Gainers
+                      </h4>
                     </div>
-                    <div className={`flex items-center text-sm ${
-                      (stock.data.d || 0) >= 0 ? 'text-green-600' : 'text-red-600'
-                    }`}>
-                      <span className="mr-1">
-                        {(stock.data.d || 0) >= 0 ? '▲' : '▼'}
-                      </span>
-                      <span className="font-medium">
-                        {(stock.data.d || 0) >= 0 ? '+' : ''}{stock.data.d?.toFixed(2) || '0.00'} 
-                        ({(stock.data.dp || 0) >= 0 ? '+' : ''}{stock.data.dp?.toFixed(2) || '0.00'}%)
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 mt-4 text-xs text-gray-500">
-                      <div>High: ${stock.data.h?.toFixed(2) || 'N/A'}</div>
-                      <div>Low: ${stock.data.l?.toFixed(2) || 'N/A'}</div>
-                      {stock.profile?.marketCapitalization && (
-                        <div>Market Cap: ${(stock.profile.marketCapitalization / 1000).toFixed(1)}B</div>
-                      )}
-                      {stock.profile?.finnhubIndustry && (
-                        <div className="col-span-1 truncate">{stock.profile.finnhubIndustry}</div>
-                      )}
+                    <div>
+                      {movers.gainers.slice(0, 5).map((stock, index) => (
+                        <StockRow key={stock.symbol} stock={stock} />
+                      ))}
                     </div>
                   </div>
-                ) : stock.error ? (
-                  <div className="text-red-500 text-sm">{stock.error}</div>
-                ) : stock.data ? (
-                  <div className="text-yellow-600 text-sm">No price data available</div>
-                ) : null}
-              </Link>
-              ))}
-            </div>
-          )}
-        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
-          <div className="p-6 border rounded-lg">
-            <h3 className="text-lg font-semibold mb-2">🤖 AI Analysis</h3>
-            <p className="text-gray-600">OpenAI O3 powered buy/sell recommendations</p>
-          </div>
-          
-          <div className="p-6 border rounded-lg">
-            <h3 className="text-lg font-semibold mb-2">📊 Real-time Data</h3>
-            <p className="text-gray-600">Live stock prices and earnings reports</p>
-          </div>
-          
-          <div className="p-6 border rounded-lg">
-            <h3 className="text-lg font-semibold mb-2">💬 Reddit Sentiment</h3>
-            <p className="text-gray-600">r/wallstreetbets community insights</p>
-          </div>
+                  {/* Top Losers */}
+                  <div style={{ borderLeft: '1px solid #333333' }}>
+                    <div style={{ padding: '16px 24px', backgroundColor: '#ff6b6b', color: '#000000' }}>
+                      <h4 style={{ fontSize: '16px', fontWeight: '600', margin: '0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        ▼ Top Losers
+                      </h4>
+                    </div>
+                    <div>
+                      {movers.losers.slice(0, 5).map((stock, index) => (
+                        <StockRow key={stock.symbol} stock={stock} />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </main>
