@@ -7,11 +7,11 @@
   "crons": [
     {
       "path": "/api/reddit-sentiment",
-      "schedule": "0 */15 * * * *"
+      "schedule": "*/15 * * * *"
     },
     {
       "path": "/api/stock-prices",
-      "schedule": "0 */5 * * * *"
+      "schedule": "*/5 * * * *"
     },
     {
       "path": "/api/openai-analysis",
