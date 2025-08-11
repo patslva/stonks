@@ -169,6 +169,8 @@ export default function Home() {
   const [indices, setIndices] = useState<any[]>([])
   const [movers, setMovers] = useState<{gainers: any[], losers: any[]}>({gainers: [], losers: []})
   const [loadingMarketData, setLoadingMarketData] = useState(true)
+  const [marketNews, setMarketNews] = useState<any[]>([])
+  const [loadingNews, setLoadingNews] = useState(true)
 
   useEffect(() => {
     // Auto-refresh cache when home page loads
@@ -177,7 +179,24 @@ export default function Home() {
     loadMarketData()
     // Load indices and movers
     loadMarketOverview()
+    // Load market news
+    loadMarketNews()
   }, [])
+
+  const loadMarketNews = async () => {
+    setLoadingNews(true)
+    try {
+      const response = await fetch('/api/stock-data?type=market-news')
+      if (response.ok) {
+        const data = await response.json()
+        setMarketNews(data.news || [])
+      }
+    } catch (error) {
+      console.error('Failed to load market news:', error)
+    } finally {
+      setLoadingNews(false)
+    }
+  }
 
   const loadMarketOverview = async () => {
     setLoadingMarketData(true)
@@ -272,7 +291,12 @@ export default function Home() {
       const data = await response.json()
       
       if (data.success) {
-        setLastRefresh(new Date().toLocaleTimeString())
+        setLastRefresh(new Date().toLocaleTimeString('en-US', { 
+          hour12: false, 
+          hour: '2-digit', 
+          minute: '2-digit', 
+          second: '2-digit' 
+        }))
       }
     } catch (error) {
       console.error('Failed to refresh cache:', error)
@@ -320,7 +344,12 @@ export default function Home() {
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', color: '#888888' }}>
               <CalendarClock style={{ height: '14px', width: '14px' }} />
-              Refreshed at {lastRefresh || new Date().toLocaleTimeString()}
+              Refreshed at {lastRefresh || new Date().toLocaleTimeString('en-US', { 
+                hour12: false, 
+                hour: '2-digit', 
+                minute: '2-digit', 
+                second: '2-digit' 
+              })}
             </div>
           </div>
           
@@ -336,7 +365,7 @@ export default function Home() {
                 fontWeight: '500'
               }}
             >
-              View Dashboard →
+              View r/WallStreetBets Dashboard →
             </Link>
           </div>
         </header>
@@ -456,6 +485,101 @@ export default function Home() {
                 </div>
               </div>
             </>
+          )}
+        </div>
+
+        {/* Market News Section */}
+        <div style={{ marginBottom: '32px' }}>
+          <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#ffffff', marginBottom: '16px' }}>
+            📰 Market News
+          </h2>
+          
+          {loadingNews ? (
+            <div style={{ textAlign: 'center', padding: '32px' }}>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600 mx-auto mb-2"></div>
+              <p style={{ fontSize: '14px', color: '#888888' }}>Loading market news...</p>
+            </div>
+          ) : (
+            <div style={{ 
+              backgroundColor: '#0a0a0a', 
+              borderRadius: '16px', 
+              border: '1px solid #333333', 
+              boxShadow: '0 8px 32px rgb(0 0 0 / 0.4)'
+            }}>
+              <div style={{ padding: '24px', borderBottom: '1px solid #333333' }}>
+                <h3 style={{ fontSize: '20px', fontWeight: 'bold', color: '#ffffff', margin: '0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  📰 Latest Market News
+                </h3>
+              </div>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '0' }}>
+                {marketNews.slice(0, 6).map((article, index) => (
+                  <div
+                    key={index}
+                    style={{ 
+                      padding: '20px 24px',
+                      borderBottom: index < 5 ? '1px solid #333333' : 'none',
+                      borderRight: index % 2 === 0 ? '1px solid #333333' : 'none',
+                      cursor: 'pointer',
+                      transition: 'background-color 0.2s ease'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#111111'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                    onClick={() => window.open(article.url, '_blank')}
+                  >
+                    <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+                      {article.image && (
+                        <img
+                          src={article.image}
+                          alt={article.headline}
+                          style={{
+                            width: '80px',
+                            height: '60px',
+                            borderRadius: '8px',
+                            objectFit: 'cover',
+                            flexShrink: 0
+                          }}
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                      )}
+                      <div style={{ flex: 1 }}>
+                        <h4 style={{ 
+                          fontSize: '16px', 
+                          fontWeight: '600', 
+                          color: '#ffffff', 
+                          marginBottom: '8px',
+                          lineHeight: '1.4',
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden'
+                        }}>
+                          {article.headline}
+                        </h4>
+                        <p style={{ 
+                          fontSize: '14px', 
+                          color: '#888888', 
+                          marginBottom: '8px',
+                          lineHeight: '1.4',
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden'
+                        }}>
+                          {article.summary}
+                        </p>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px', color: '#666666' }}>
+                          <span>{article.source}</span>
+                          <span>{new Date(article.datetime * 1000).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
         </div>
       </div>
