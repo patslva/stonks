@@ -1,0 +1,232 @@
+# Stonks App - Complete System Design v2.0
+## AI-First Stock Analysis Platform with Reddit Sentiment & Earnings Analysis
+
+### Overview
+A comprehensive stock analysis dashboard that combines Reddit sentiment analysis, real-time stock data from Finnhub, and AI-powered earnings report analysis using OpenAI O3. The app uses Vercel Cron Jobs for automated data collection and caches everything in Redis for optimal performance.
+
+### Complete Architecture (All Phases)
+```
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   Next.js 15    │    │   Vercel Cron    │    │   Upstash       │
+│   Frontend      │────│   Daily 12pm UTC │────│   Redis Cache   │
+│   Dashboard     │    │   (2 jobs free)  │    │   (24hr TTL)    │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+         │                       │                       │
+         │                       │                       │
+         ▼                       ▼                       ▼
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   Stock Data    │    │   Reddit WSB     │    │   Earnings      │
+│   Finnhub API   │    │   Python PRAW   │    │   OpenAI O3     │
+│   Real-time     │    │   Sentiment      │    │   Analysis      │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+         │                       │                       │
+         │                       │                       │
+         └───────────────────────┼───────────────────────┘
+                                 │
+                                 ▼
+                    ┌──────────────────┐
+                    │   OpenAI O4-mini │
+                    │   Sentiment      │
+                    │   Analysis       │
+                    └──────────────────┘
+```
+
+### Tech Stack
+- **Frontend**: Next.js 15 (App Router), React 19, TypeScript, Tailwind CSS
+- **Backend**: Vercel serverless functions (TypeScript + Python)
+- **Automation**: Vercel Cron Jobs (2 free daily jobs)
+- **Cache**: Upstash Redis (24-hour TTL for all data)
+- **APIs**: 
+  - Reddit API (PRAW library)
+  - OpenAI O3 API (earnings analysis) - $2/$8 per 1M tokens
+  - OpenAI O4-mini API (sentiment analysis) - $0.15/$0.60 per 1M tokens
+  - Finnhub API (stock data) - Free tier 60 calls/min
+- **Deployment**: Vercel (automatic CI/CD)
+
+### Core Features (Complete Implementation)
+1. **Automated Daily Data Collection**: 
+   - WSB Reddit scraping via Cron
+   - Stock prices from Finnhub API
+   - Latest earnings reports fetching
+
+2. **AI-Powered Analysis**:
+   - OpenAI O4-mini: Reddit sentiment analysis (bullish/bearish/neutral)
+   - OpenAI O3: Deep earnings report analysis with buy/sell/put recommendations
+
+3. **Real-Time Stock Dashboard**:
+   - Live stock prices, volume, market cap
+   - Earnings dates, revenue, EPS data
+   - Reddit community sentiment scores
+   - AI buy/sell recommendations with reasoning
+
+4. **User Features**:
+   - Stock watchlists and favorites
+   - Price alerts and notifications
+   - Historical sentiment tracking
+   - Earnings calendar integration
+
+### API Endpoints
+```
+GET  /api/wsb-posts          - Reddit data with AI sentiment
+GET  /api/stock-data/:symbol - Finnhub stock prices & fundamentals
+GET  /api/earnings/:symbol   - Latest earnings with O3 analysis
+GET  /api/recommendations    - AI buy/sell/put recommendations
+POST /api/refresh-cache      - Cron-triggered data refresh
+POST /api/analyze-earnings   - On-demand O3 earnings analysis
+```
+
+### Cron Jobs Configuration
+```json
+// vercel.json
+{
+  "crons": [
+    {
+      "path": "/api/refresh-cache",
+      "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/daily-earnings-scan",
+      "schedule": "0 6 * * *"
+    }
+  ]
+}
+```
+
+### Data Flow
+1. **Daily 6am UTC** → Scan for new earnings reports, trigger O3 analysis
+2. **Daily 12pm UTC** → Refresh WSB posts, stock data, O4-mini sentiment
+3. **Real-time user requests** → Serve cached data + live stock prices
+4. **On-demand analysis** → Fresh O3 earnings analysis for specific stocks
+5. **Dashboard updates** → Auto-refresh every 5min for price changes
+
+### Key Data Sources & AI Processing
+
+#### Reddit Sentiment (O4-mini)
+```
+WSB Post Title: "NVDA to the moon! 🚀 Earnings beat expected"
+O4-mini Analysis: {
+  sentiment: "bullish",
+  confidence: 0.89,
+  keywords: ["earnings beat", "moon", "rocket"],
+  reasoning: "Strong positive language with earnings catalyst"
+}
+```
+
+#### Earnings Analysis (O3)
+```
+Earnings Report: Q4 2024 NVDA - Revenue $60.9B (+22% YoY), EPS $5.16
+O3 Analysis: {
+  recommendation: "BUY",
+  confidence: "High",
+  reasoning: "Revenue growth acceleration, margin expansion, AI demand strong",
+  priceTarget: "$150-165",
+  riskFactors: ["Regulatory concerns", "Market saturation"],
+  timeHorizon: "6-12 months"
+}
+```
+
+### File Structure
+```
+src/
+├── app/
+│   ├── api/
+│   │   ├── refresh-cache/route.ts           # Daily WSB + stock refresh
+│   │   ├── daily-earnings-scan/route.ts     # Daily earnings O3 analysis
+│   │   ├── wsb-posts/route.ts              # Reddit with sentiment
+│   │   ├── stock-data/[symbol]/route.ts    # Finnhub stock data
+│   │   ├── earnings/[symbol]/route.ts      # Earnings + O3 analysis
+│   │   └── recommendations/route.ts         # AI buy/sell/put recs
+│   ├── dashboard/page.tsx                   # Main stock dashboard
+│   ├── stock/[symbol]/page.tsx             # Individual stock analysis
+│   └── page.tsx                            # Home page
+├── api/
+│   ├── fetch-reddit-cache.py              # Reddit scraper + O4-mini
+│   ├── fetch-stock-data.py                # Finnhub integration
+│   └── analyze-earnings.py                 # O3 earnings analysis
+├── lib/
+│   ├── openai.ts                          # OpenAI API utilities
+│   ├── finnhub.ts                         # Stock data utilities
+│   └── redis.ts                           # Cache management
+└── vercel.json                            # Cron configuration
+```
+
+### Environment Variables
+```bash
+# APIs
+REDDIT_CLIENT_ID=xxx
+REDDIT_CLIENT_SECRET=xxx
+OPENAI_API_KEY=xxx              # O3 + O4-mini access
+FINNHUB_API_KEY=xxx             # Stock data
+
+# Infrastructure
+REDIS_URL=rediss://...          # Upstash Redis
+SUPABASE_URL=xxx               # User data storage
+SUPABASE_ANON_KEY=xxx
+```
+
+### Dashboard Features
+1. **Stock Overview Cards**:
+   - Current price, daily change, volume
+   - Market cap, P/E ratio, 52-week range
+   - Reddit sentiment score (1-10)
+   - AI recommendation badge (BUY/SELL/HOLD)
+
+2. **Earnings Analysis Panel**:
+   - Latest earnings date & results
+   - O3 AI analysis summary
+   - Buy/sell recommendation with reasoning
+   - Price target and time horizon
+
+3. **Reddit Sentiment Feed**:
+   - Top WSB posts with O4-mini sentiment
+   - Bullish/bearish sentiment trends
+   - Most mentioned tickers
+   - Community engagement metrics
+
+4. **User Features**:
+   - Personal watchlist management
+   - Price and earnings alerts
+   - Historical performance tracking
+   - Export analysis reports
+
+### Cost Analysis (Monthly)
+- **Vercel**: $0 (Hobby plan, personal use)
+- **Upstash Redis**: $0-8 (first 10K commands free)
+- **Reddit API**: $0 (read-only access)
+- **OpenAI O4-mini**: $5-15 (sentiment analysis ~50K tokens/day)
+- **OpenAI O3**: $10-30 (earnings analysis ~25 reports/day)
+- **Finnhub**: $0 (free tier, 60 calls/minute)
+- **Total**: $15-55/month for moderate usage
+
+### Performance Metrics
+- **Data freshness**: 
+  - Stock prices: Real-time on request
+  - WSB posts: Daily refresh at 12pm UTC
+  - Earnings analysis: Daily scan at 6am UTC
+  - Sentiment scores: Daily O4-mini batch processing
+
+- **Response times**:
+  - Dashboard load: <1s (cached data)
+  - Stock lookup: <2s (Finnhub + cache)
+  - On-demand O3 analysis: 10-30s
+  - Sentiment analysis: 5-15s batch processing
+
+### Deployment & Scaling
+✅ **Current (Free Tier)**:
+- 2 Vercel Cron Jobs
+- Upstash Redis free tier
+- Next.js Hobby plan
+- OpenAI API pay-as-you-go
+
+📈 **Future Scaling Options**:
+- Vercel Pro ($20/month) for more cron jobs
+- Upstash paid tier for higher Redis limits
+- OpenAI batch processing discounts
+- Custom domains and advanced analytics
+
+### Key Value Propositions
+1. **All-in-One Platform**: Reddit sentiment + Stock data + AI analysis
+2. **Real AI Insights**: O3-powered earnings analysis with actionable recommendations
+3. **Community Intelligence**: WSB sentiment scoring and trend analysis
+4. **Automated Updates**: Daily data refresh with no manual intervention
+5. **Cost Effective**: Starts free, scales with usage
