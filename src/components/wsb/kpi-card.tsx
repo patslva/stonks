@@ -1,8 +1,13 @@
 "use client"
 
 import { Card, CardContent } from "@/components/ui/card"
-import { cn } from "@/lib/utils"
+import { clsx, type ClassValue } from "clsx"
+import { twMerge } from "tailwind-merge"
 import type { LucideIcon } from "lucide-react"
+
+function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}
 
 type Props = {
   label?: string
