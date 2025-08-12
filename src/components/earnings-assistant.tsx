@@ -12,7 +12,7 @@ interface Message {
   timestamp: Date;
 }
 
-export default function EarningsAssistant() {
+export default function EarningsAssistant(): React.JSX.Element {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
