@@ -1,12 +1,12 @@
 import './globals.css'
 import { Inter } from 'next/font/google'
-import EarningsAssistant from '../components/earnings-assistant'
+import ConditionalEarningsAssistant from '../components/conditional-earnings-assistant'
 
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata = {
   title: 'Stonks - AI Stock Analysis',
-  description: 'AI-powered stock analysis with Reddit sentiment',
+  description: "Trading dashboard with AI-assisted 'betting' tips",
 }
 
 export default function RootLayout({
@@ -18,7 +18,7 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body className={inter.className}>
         {children}
-        <EarningsAssistant />
+        <ConditionalEarningsAssistant />
       </body>
     </html>
   )

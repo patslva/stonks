@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { LineChart, Rocket, CalendarClock, ArrowUpRight, ArrowDownRight, Search } from 'lucide-react'
+import { LineChart, CalendarClock, ArrowUpRight, ArrowDownRight, Search } from 'lucide-react'
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button" 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -310,16 +310,16 @@ export default function Home() {
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '40px 20px' }}>
         {/* Clean Header like Image 1 */}
         <header style={{ textAlign: 'center', marginBottom: '48px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '16px' }}>
-            <LineChart style={{ height: '28px', width: '28px', color: '#ffffff' }} />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginBottom: '16px' }}>
+            <span style={{ fontSize: '28px' }}>📈</span>
             <h1 style={{ fontSize: '42px', fontWeight: 'bold', color: '#ffffff', margin: '0' }}>
               Stonks
             </h1>
-            <Rocket style={{ height: '24px', width: '24px', color: '#1db954' }} />
+            <span style={{ fontSize: '24px' }}>🚀</span>
           </div>
           
           <p style={{ fontSize: '18px', color: '#888888', marginBottom: '24px' }}>
-            AI-powered stock analysis with Reddit sentiment
+            AI-powered stock analysis with Reddit Trading dashboard with AI-assisted 'betting' tips
           </p>
           
           <div style={{ 
