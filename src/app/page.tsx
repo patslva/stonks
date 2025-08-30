@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { LineChart, CalendarClock, ArrowUpRight, ArrowDownRight, Search } from 'lucide-react'
 import { Badge } from "@/components/ui/badge"
@@ -162,6 +164,8 @@ const StockRow = ({ stock }: { stock: any }) => (
 )
 
 export default function Home() {
+  const { data: session, status } = useSession()
+  const router = useRouter()
   const [refreshing, setRefreshing] = useState(false)
   const [lastRefresh, setLastRefresh] = useState<string | null>(null)
   const [stocks, setStocks] = useState<StockQuote[]>([])
@@ -171,6 +175,15 @@ export default function Home() {
   const [loadingMarketData, setLoadingMarketData] = useState(true)
   const [marketNews, setMarketNews] = useState<any[]>([])
   const [loadingNews, setLoadingNews] = useState(true)
+
+  // Auth check - redirect to login if not authenticated
+  useEffect(() => {
+    if (status === 'loading') return // Still loading
+    if (!session) {
+      router.push('/login')
+      return
+    }
+  }, [session, status, router])
 
   useEffect(() => {
     // Auto-refresh cache when home page loads
@@ -303,6 +316,15 @@ export default function Home() {
     } finally {
       setRefreshing(false)
     }
+  }
+
+  // Show loading while checking auth or redirecting
+  if (status === 'loading' || !session) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-white">Loading...</div>
+      </div>
+    )
   }
 
   return (
