@@ -1,5 +1,6 @@
 import './globals.css'
 import { Inter } from 'next/font/google'
+import ClientSessionProvider from '../components/session-provider'
 import ConditionalEarningsAssistant from '../components/conditional-earnings-assistant'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -17,7 +18,9 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={inter.className}>
-        {children}
+        <ClientSessionProvider>
+          {children}
+        </ClientSessionProvider>
         <ConditionalEarningsAssistant />
       </body>
     </html>
