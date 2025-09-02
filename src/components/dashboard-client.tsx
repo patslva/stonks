@@ -472,16 +472,6 @@ export default function DashboardClient() {
         )}
       </div>
 
-      <footer className="text-center text-sm text-muted-foreground">
-        <p>Last refresh: {lastRefresh ? lastRefresh.toLocaleTimeString() : "Loading..."}</p>
-        <Button 
-          onClick={() => load()} 
-          disabled={loading} 
-          className="mt-4 bg-emerald-500 hover:bg-emerald-600 text-black border-0"
-        >
-          {loading ? "🔄 Refreshing..." : "🔄 Refresh Now"}
-        </Button>
-      </footer>
     </div>
   );
 }

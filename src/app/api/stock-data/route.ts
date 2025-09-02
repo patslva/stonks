@@ -104,7 +104,7 @@ const getHistoricalCandles = async (symbol: string, resolution: string = 'D', da
     const entries = Object.entries(timeSeries).reverse();
     
     // Limit to requested days
-    const limitedEntries = entries.slice(-Math.min(days * 2, entries.length));
+    const limitedEntries = entries.slice(-Math.min(days, entries.length));
 
     limitedEntries.forEach(([timestamp, values]: [string, any]) => {
       timestamps.push(new Date(timestamp).getTime() / 1000);

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { LineChart, CalendarClock, ArrowUpRight, ArrowDownRight, Search } from 'lucide-react'
+import { LineChart, ArrowUpRight, ArrowDownRight, Search } from 'lucide-react'
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button" 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -166,8 +166,6 @@ const StockRow = ({ stock }: { stock: any }) => (
 export default function Home() {
   const { data: session, status } = useSession()
   const router = useRouter()
-  const [refreshing, setRefreshing] = useState(false)
-  const [lastRefresh, setLastRefresh] = useState<string | null>(null)
   const [stocks, setStocks] = useState<StockQuote[]>([])
   const [loadingTickers, setLoadingTickers] = useState(true)
   const [indices, setIndices] = useState<any[]>([])
@@ -186,8 +184,6 @@ export default function Home() {
   }, [session, status, router])
 
   useEffect(() => {
-    // Auto-refresh cache when home page loads
-    refreshCache()
     // Load market data
     loadMarketData()
     // Load indices and movers
@@ -297,26 +293,6 @@ export default function Home() {
     setStocks(updatedStocks)
   }
 
-  const refreshCache = async () => {
-    setRefreshing(true)
-    try {
-      const response = await fetch('/api/refresh-cache', { method: 'POST' })
-      const data = await response.json()
-      
-      if (data.success) {
-        setLastRefresh(new Date().toLocaleTimeString('en-US', { 
-          hour12: false, 
-          hour: '2-digit', 
-          minute: '2-digit', 
-          second: '2-digit' 
-        }))
-      }
-    } catch (error) {
-      console.error('Failed to refresh cache:', error)
-    } finally {
-      setRefreshing(false)
-    }
-  }
 
   // Show loading while checking auth or redirecting
   if (status === 'loading' || !session) {
@@ -344,36 +320,6 @@ export default function Home() {
             AI-powered stock analysis with Reddit Trading dashboard with AI-assisted 'betting' tips
           </p>
           
-          <div style={{ 
-            display: 'inline-flex', 
-            alignItems: 'center', 
-            gap: '12px', 
-            backgroundColor: '#1a1a1a',
-            border: '1px solid #333333',
-            borderRadius: '50px',
-            padding: '12px 24px',
-            marginBottom: '24px'
-          }}>
-            <div style={{ 
-              backgroundColor: '#1db954', 
-              color: '#000000', 
-              padding: '4px 12px', 
-              borderRadius: '20px', 
-              fontSize: '12px', 
-              fontWeight: '600' 
-            }}>
-              {refreshing ? 'Refreshing...' : 'Data OK'}
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', color: '#888888' }}>
-              <CalendarClock style={{ height: '14px', width: '14px' }} />
-              Refreshed at {lastRefresh || new Date().toLocaleTimeString('en-US', { 
-                hour12: false, 
-                hour: '2-digit', 
-                minute: '2-digit', 
-                second: '2-digit' 
-              })}
-            </div>
-          </div>
           
           <div style={{ marginBottom: '32px' }}>
             <Link 
