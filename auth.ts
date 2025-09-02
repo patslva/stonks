@@ -45,11 +45,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
             if (error) {
               console.error('Error creating user:', error)
-            } else {
-              console.log('✅ User created in database')
             }
-          } else {
-            console.log('✅ User already exists in database')
           }
         } catch (error) {
           console.error('Database error:', error)
@@ -58,26 +54,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return true
     },
     async jwt({ token, user, account, profile }) {
-      console.log('🔍 JWT Callback:', {
-        hasToken: !!token,
-        hasUser: !!user,
-        hasAccount: !!account,
-        tokenEmail: token?.email,
-        userEmail: user?.email
-      });
       return token
     },
     async session({ session, token }) {
-      console.log('🔍 Session Callback:', {
-        hasSession: !!session,
-        hasToken: !!token,
-        sessionUser: session?.user?.email,
-        tokenEmail: token?.email
-      });
       return session
     },
     async redirect({ url, baseUrl }) {
-      console.log('🔍 Redirect Callback:', { url, baseUrl });
       // After successful login, redirect to home page
       if (url === baseUrl + '/login') {
         return baseUrl
@@ -89,12 +71,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return baseUrl
     },
     authorized({ auth, request: { nextUrl } }) {
-      console.log('🔍 Authorization check:', {
-        path: nextUrl.pathname,
-        isLoggedIn: !!auth?.user,
-        user: auth?.user?.email
-      });
-      
       const isLoggedIn = !!auth?.user;
       const isOnDashboard = nextUrl.pathname.startsWith('/dashboard');
       const isOnLogin = nextUrl.pathname.startsWith('/login');

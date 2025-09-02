@@ -42,9 +42,6 @@ export async function POST(req: Request) {
     messages = body.messages;
   }
     try {
-        console.log('Received messages:', messages);
-        console.log('OpenAI API Key exists:', !!process.env.OPENAI_API_KEY);
-        
         const result = await generateText({
         model: openai.responses('o3'),
         system: `
