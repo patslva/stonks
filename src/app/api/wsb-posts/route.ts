@@ -38,14 +38,34 @@ export async function GET() {
     })
 
     // Get cached WSB posts
-    const cachedData = await redis.get('wsb:hot_posts')
+    let cachedData = await redis.get('wsb:hot_posts')
     const lastUpdated = await redis.get('wsb:last_updated')
 
     if (!cachedData) {
-      return NextResponse.json({ 
-        error: 'No cached data available',
-        message: 'Trigger cache refresh first at /api/refresh-cache'
-      }, { status: 404 })
+      // Auto-refresh cache if missing
+      try {
+        const refreshResponse = await fetch(`${process.env.VERCEL_URL ? 'https://' + process.env.VERCEL_URL : 'http://localhost:3000'}/api/refresh-cache`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        })
+        
+        if (refreshResponse.ok) {
+          // Wait a moment for Redis to update, then try again
+          await new Promise(resolve => setTimeout(resolve, 1000))
+          cachedData = await redis.get('wsb:hot_posts')
+          
+          if (!cachedData) {
+            throw new Error('Cache refresh failed')
+          }
+        } else {
+          throw new Error('Refresh API call failed')
+        }
+      } catch (error) {
+        return NextResponse.json({ 
+          error: 'No cached data available and auto-refresh failed',
+          message: 'Please try refreshing the page or trigger cache refresh manually at /api/refresh-cache'
+        }, { status: 503 })
+      }
     }
 
     const data: CachedData = JSON.parse(cachedData)
@@ -93,7 +113,6 @@ export async function GET() {
     })
 
   } catch (error) {
-    console.error('Error fetching WSB posts:', error)
     return NextResponse.json({ 
       error: 'Failed to fetch posts',
       message: 'Redis connection or data parsing failed'

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, TrendingUp, TrendingDown, Globe, Calendar, Building } from 'lucide-react'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts'
 
 interface StockData {
   c: number // current price
@@ -68,7 +68,8 @@ export default function StockPage() {
   const [chartData, setChartData] = useState<ChartDataPoint[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [chartPeriod, setChartPeriod] = useState<'1D' | '1W' | '1M' | '3M' | '1Y'>('1M')
+  const [chartLoading, setChartLoading] = useState(false)
+  const [chartPeriod, setChartPeriod] = useState<'1D' | '1W' | '1M' | '6M' | '1Y' | '5Y'>('1M')
 
   useEffect(() => {
     if (!symbol) return
@@ -116,17 +117,19 @@ export default function StockPage() {
   }
 
   const fetchChartData = async () => {
+    setChartLoading(true)
     try {
       const periodToDays: Record<typeof chartPeriod, number> = {
         '1D': 1,
         '1W': 7,
         '1M': 30,
-        '3M': 90,
-        '1Y': 365
+        '6M': 180,
+        '1Y': 365,
+        '5Y': 1825
       }
 
       const days = periodToDays[chartPeriod]
-      const resolution = chartPeriod === '1D' ? '5' : chartPeriod === '1W' ? '15' : 'D'
+      const resolution = chartPeriod === '1D' ? '5' : chartPeriod === '1W' ? '15' : chartPeriod === '1M' ? 'D' : 'W'
       
       const response = await fetch(
         `/api/stock-data?symbol=${symbol}&type=candles&days=${days}&resolution=${resolution}`
@@ -142,62 +145,26 @@ export default function StockPage() {
             date: new Date(historicalData.t[index] * 1000).toLocaleDateString('en-US', {
               month: 'short',
               day: 'numeric',
-              ...(chartPeriod === '1Y' ? { year: '2-digit' } : {})
+              ...(chartPeriod === '1Y' || chartPeriod === '5Y' ? { year: '2-digit' } : {}),
+              ...(chartPeriod === '1D' ? { hour: 'numeric', minute: '2-digit' } : {})
             })
           }))
           
           setChartData(formattedData)
         } else {
-          // Fallback: Generate mock data based on current stock price
-          generateMockChartData()
+          // No data available
+          setChartData([])
         }
       } else {
-        console.error('Failed to fetch historical data:', response.status)
-        generateMockChartData()
+        setChartData([])
       }
     } catch (err) {
-      console.error('Error fetching chart data:', err)
-      generateMockChartData()
+      setChartData([])
+    } finally {
+      setChartLoading(false)
     }
   }
 
-  const generateMockChartData = () => {
-    if (!stockData?.c) return
-
-    const currentPrice = stockData.c
-    const dataPoints = chartPeriod === '1D' ? 48 : chartPeriod === '1W' ? 7 : chartPeriod === '1M' ? 30 : chartPeriod === '3M' ? 90 : 365
-    const mockData: ChartDataPoint[] = []
-    
-    // Generate realistic price movement around current price
-    let price = currentPrice * 0.95 // Start 5% below current
-    const volatility = 0.02 // 2% daily volatility
-    const trend = (currentPrice - price) / dataPoints // Gradual trend to current price
-
-    for (let i = 0; i < dataPoints; i++) {
-      const randomChange = (Math.random() - 0.5) * volatility * price
-      price += trend + randomChange
-      
-      const date = new Date()
-      if (chartPeriod === '1D') {
-        date.setHours(9 + Math.floor(i / 2), (i % 2) * 30) // Every 30 minutes
-      } else {
-        date.setDate(date.getDate() - (dataPoints - i - 1)) // Days ago
-      }
-      
-      mockData.push({
-        price: Math.max(price, currentPrice * 0.8), // Don't go below 80% of current
-        timestamp: date.getTime() / 1000,
-        date: date.toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          ...(chartPeriod === '1Y' ? { year: '2-digit' } : {}),
-          ...(chartPeriod === '1D' ? { hour: 'numeric' } : {})
-        })
-      })
-    }
-    
-    setChartData(mockData)
-  }
 
   if (loading) {
     return (
@@ -306,31 +273,60 @@ export default function StockPage() {
         {/* Stock Chart */}
         <div style={{ 
           backgroundColor: '#0a0a0a', 
-          borderRadius: '16px', 
-          border: '1px solid #333333', 
-          boxShadow: '0 8px 32px rgb(0 0 0 / 0.4)',
+          borderRadius: '20px', 
+          border: '1px solid #222222', 
+          boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 10px 10px -5px rgb(0 0 0 / 0.04)',
           marginBottom: '32px'
         }}>
-          <div style={{ padding: '24px', borderBottom: '1px solid #333333' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#ffffff', margin: '0' }}>
-                📈 Price Chart
-              </h2>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                {(['1D', '1W', '1M', '3M', '1Y'] as const).map((period) => (
+          <div style={{ padding: '32px 32px 16px 32px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+              <div>
+                <h2 style={{ fontSize: '28px', fontWeight: '700', color: '#ffffff', margin: '0', lineHeight: '1.2' }}>
+                  ${stockData?.c?.toFixed(2) || '0.00'}
+                </h2>
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '8px', 
+                  marginTop: '4px',
+                  fontSize: '16px', 
+                  fontWeight: '600',
+                  color: (stockData?.d || 0) >= 0 ? '#10b981' : '#ef4444'
+                }}>
+                  <span>{(stockData?.d || 0) >= 0 ? '↗' : '↘'}</span>
+                  <span>
+                    {(stockData?.d || 0) >= 0 ? '+' : ''}{stockData?.d?.toFixed(2) || '0.00'} 
+                    ({(stockData?.dp || 0) >= 0 ? '+' : ''}{stockData?.dp?.toFixed(2) || '0.00'}%)
+                  </span>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                {(['1D', '1W', '1M', '6M', '1Y', '5Y'] as const).map((period) => (
                   <button
                     key={period}
                     onClick={() => setChartPeriod(period)}
                     style={{
-                      padding: '6px 12px',
-                      borderRadius: '6px',
+                      padding: '8px 16px',
+                      borderRadius: '12px',
                       border: 'none',
-                      backgroundColor: chartPeriod === period ? '#1db954' : '#1a1a1a',
-                      color: chartPeriod === period ? '#000000' : '#ffffff',
-                      fontSize: '12px',
+                      backgroundColor: chartPeriod === period ? '#1db954' : 'transparent',
+                      color: chartPeriod === period ? '#000000' : '#888888',
+                      fontSize: '14px',
                       fontWeight: '600',
                       cursor: 'pointer',
                       transition: 'all 0.2s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (chartPeriod !== period) {
+                        e.currentTarget.style.backgroundColor = '#1a1a1a'
+                        e.currentTarget.style.color = '#ffffff'
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (chartPeriod !== period) {
+                        e.currentTarget.style.backgroundColor = 'transparent'
+                        e.currentTarget.style.color = '#888888'
+                      }
                     }}
                   >
                     {period}
@@ -339,45 +335,85 @@ export default function StockPage() {
               </div>
             </div>
           </div>
-          <div style={{ padding: '24px', height: '400px' }}>
-            {chartData.length > 0 ? (
+          <div style={{ padding: '0 32px 32px 32px', height: '450px' }}>
+            {chartLoading ? (
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                height: '100%',
+                color: '#888888'
+              }}>
+                <div style={{ textAlign: 'center' }}>
+                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-emerald-500 mx-auto mb-3"></div>
+                  <p style={{ fontSize: '16px', fontWeight: '500' }}>Loading chart data...</p>
+                </div>
+              </div>
+            ) : chartData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#333333" />
+                <AreaChart data={chartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+                  <defs>
+                    <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop 
+                        offset="5%" 
+                        stopColor={(stockData?.d || 0) >= 0 ? '#10b981' : '#ef4444'} 
+                        stopOpacity={0.2}
+                      />
+                      <stop 
+                        offset="95%" 
+                        stopColor={(stockData?.d || 0) >= 0 ? '#10b981' : '#ef4444'} 
+                        stopOpacity={0.0}
+                      />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="1 4" stroke="#1a1a1a" horizontal={true} vertical={false} />
                   <XAxis 
                     dataKey="date" 
-                    stroke="#888888" 
-                    fontSize={12}
+                    stroke="#666666" 
+                    fontSize={13}
                     axisLine={false}
                     tickLine={false}
+                    tick={{ fill: '#666666' }}
+                    interval="preserveStartEnd"
                   />
                   <YAxis 
-                    stroke="#888888" 
-                    fontSize={12}
+                    stroke="#666666" 
+                    fontSize={13}
                     axisLine={false}
                     tickLine={false}
-                    domain={['dataMin - 5', 'dataMax + 5']}
-                    tickFormatter={(value) => `$${value.toFixed(2)}`}
+                    tick={{ fill: '#666666' }}
+                    domain={['dataMin - 2', 'dataMax + 2']}
+                    tickFormatter={(value) => `$${value.toFixed(0)}`}
+                    width={60}
                   />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: '#1a1a1a',
+                      backgroundColor: '#111111',
                       border: '1px solid #333333',
-                      borderRadius: '8px',
-                      color: '#ffffff'
+                      borderRadius: '12px',
+                      color: '#ffffff',
+                      boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.3)',
+                      fontSize: '14px',
+                      fontWeight: '500'
                     }}
                     formatter={(value: number) => [`$${value.toFixed(2)}`, 'Price']}
-                    labelFormatter={(label) => `Date: ${label}`}
+                    labelFormatter={(label) => `${label}`}
+                    cursor={{ strokeDasharray: '2 2', stroke: '#666666' }}
                   />
-                  <Line
+                  <Area
                     type="monotone"
                     dataKey="price"
-                    stroke={(stockData?.d || 0) >= 0 ? '#1db954' : '#ff6b6b'}
-                    strokeWidth={2}
-                    dot={false}
-                    activeDot={{ r: 4, fill: (stockData?.d || 0) >= 0 ? '#1db954' : '#ff6b6b' }}
+                    stroke={(stockData?.d || 0) >= 0 ? '#10b981' : '#ef4444'}
+                    strokeWidth={3}
+                    fill="url(#priceGradient)"
+                    activeDot={{ 
+                      r: 6, 
+                      fill: (stockData?.d || 0) >= 0 ? '#10b981' : '#ef4444',
+                      strokeWidth: 3,
+                      stroke: '#111111'
+                    }}
                   />
-                </LineChart>
+                </AreaChart>
               </ResponsiveContainer>
             ) : (
               <div style={{ 
@@ -388,8 +424,8 @@ export default function StockPage() {
                 color: '#888888'
               }}>
                 <div style={{ textAlign: 'center' }}>
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600 mx-auto mb-2"></div>
-                  <p>Loading chart data...</p>
+                  <p>No chart data available for this period</p>
+                  <p style={{ fontSize: '12px', marginTop: '8px' }}>Try selecting a different time period</p>
                 </div>
               </div>
             )}

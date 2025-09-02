@@ -70,8 +70,6 @@ const getHistoricalCandles = async (symbol: string, resolution: string = 'D', da
 
     const url = `https://www.alphavantage.co/query?function=${functionName}&symbol=${symbol}${interval}&outputsize=compact&apikey=${apiKey}`;
     
-    console.log(`Fetching Alpha Vantage data for ${symbol}, function: ${functionName}`);
-    
     const response = await axios.get(url);
     const data = response.data;
 
@@ -106,7 +104,7 @@ const getHistoricalCandles = async (symbol: string, resolution: string = 'D', da
     const entries = Object.entries(timeSeries).reverse();
     
     // Limit to requested days
-    const limitedEntries = entries.slice(-Math.min(days * 2, entries.length));
+    const limitedEntries = entries.slice(-Math.min(days, entries.length));
 
     limitedEntries.forEach(([timestamp, values]: [string, any]) => {
       timestamps.push(new Date(timestamp).getTime() / 1000);
@@ -126,7 +124,6 @@ const getHistoricalCandles = async (symbol: string, resolution: string = 'D', da
       v: volumes
     };
 
-    console.log(`Alpha Vantage returned ${closes.length} data points for ${symbol}`);
     return result;
 
   } catch (error: any) {
