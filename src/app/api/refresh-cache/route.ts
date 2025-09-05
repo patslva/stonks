@@ -35,7 +35,7 @@ async function fetchTopComments(permalink: string): Promise<RedditComment[]> {
     const commentsUrl = `https://www.reddit.com${permalink}.json?sort=top&limit=5`
     const response = await fetch(commentsUrl, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'User-Agent': 'web:stonks-app:v1.0.0 (by /u/your-username)',
         'Accept': 'application/json',
         'Accept-Language': 'en-US,en;q=0.9'
       }
@@ -87,7 +87,7 @@ async function refreshCache() {
     // Fetch hot posts from r/wallstreetbets using Reddit API
     const response = await fetch('https://www.reddit.com/r/wallstreetbets/hot.json?limit=25', {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'User-Agent': 'web:stonks-app:v1.0.0 (by /u/your-username)',
         'Accept': 'application/json',
         'Accept-Language': 'en-US,en;q=0.9'
       }
