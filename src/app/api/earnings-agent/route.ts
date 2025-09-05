@@ -1,5 +1,23 @@
 import { openai } from '@ai-sdk/openai';
 import { convertToModelMessages, generateText, UIMessage } from 'ai';
+import { createClient } from "@supabase/supabase-js"
+
+// Create Supabase client
+const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
+
+// Define interface for earnings table
+interface EarningsRecord {
+  id?: number;
+  created_at?: string;
+  user_prompt: string;
+  pdf_file?: string | null;
+  response_text: string;
+  tokens: any;
+  tool_calls: any;
+}
 
 export const maxDuration = 30;
 
@@ -7,12 +25,18 @@ export async function POST(req: Request) {
   const contentType = req.headers.get('content-type') || '';
   
   let messages;
+  let userPrompt = '';
+  let pdfFileName: string | null = null;
   
   if (contentType.includes('multipart/form-data')) {
     // Handle PDF upload
     const formData = await req.formData();
     const text = formData.get('text') as string || 'Analyze this earnings report PDF';
     const pdfFile = formData.get('pdf') as File;
+    
+    userPrompt = text;
+    pdfFileName = pdfFile ? pdfFile.name : null;
+    
     
     if (pdfFile) {
       const pdfBuffer = await pdfFile.arrayBuffer();
@@ -40,6 +64,12 @@ export async function POST(req: Request) {
     // Handle regular JSON request
     const body = await req.json();
     messages = body.messages;
+    
+    userPrompt = messages[0]?.content || '';
+    
+    console.log('=== EARNINGS REQUEST (TEXT) ===');
+    console.log('messages:', JSON.stringify(messages, null, 2));
+    console.log('==============================');
   }
     try {
         const result = await generateText({
@@ -85,6 +115,32 @@ export async function POST(req: Request) {
             }),
         },
         });
+
+
+        // Save to Supabase following TypeScript best practices
+        try {
+            const earningsRecord: EarningsRecord = {
+                user_prompt: userPrompt,
+                pdf_file: pdfFileName,
+                response_text: result.text,
+                tokens: result.usage,
+                tool_calls: result.toolCalls || []
+            };
+
+            const { data, error } = await supabase
+                .from('chat_completions')
+                .insert<EarningsRecord>(earningsRecord)
+                .select();
+
+            if (error) {
+                console.error('Supabase insertion error:', error);
+            } else {
+                console.log('Successfully saved to database:', data);
+            }
+        } catch (dbError) {
+            console.error('Database operation failed:', dbError);
+            // Don't fail the API response if database save fails
+        }
 
         return Response.json({ 
             text: result.text,
