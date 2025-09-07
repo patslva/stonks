@@ -37,9 +37,11 @@ export async function GET() {
       maxRetriesPerRequest: 1,
     })
 
-    // Get cached WSB posts
+    // Get cached WSB posts and comments
     let cachedData = await redis.get('wsb:hot_posts')
+    const cachedComments = await redis.get('wsb:daily_comments')
     const lastUpdated = await redis.get('wsb:last_updated')
+    const commentsUpdated = await redis.get('wsb:comments_updated')
 
     if (!cachedData) {
       // Auto-refresh cache if missing
@@ -70,6 +72,50 @@ export async function GET() {
 
     const data: CachedData = JSON.parse(cachedData)
     
+    // Check if comments need refreshing (>4 hours old)
+    const shouldRefreshComments = (() => {
+      if (!commentsUpdated) return true; // No timestamp, need refresh
+      
+      const commentsAge = Date.now() - new Date(commentsUpdated).getTime();
+      const fourHours = 4 * 60 * 60 * 1000; // 4 hours in milliseconds
+      
+      return commentsAge > fourHours;
+    })();
+    
+    // Trigger background comment refresh if needed (non-blocking)
+    if (shouldRefreshComments) {
+      console.log('Comments are stale, triggering background refresh...');
+      
+      // Fire and forget - don't wait for response
+      const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000';
+      fetch(`${baseUrl}/api/refresh-cache`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      }).catch(error => {
+        console.log('Background comment refresh failed:', error.message);
+      });
+    }
+    
+    // Parse cached comments if available
+    let commentsData: WSBPost[] = []
+    if (cachedComments) {
+      try {
+        commentsData = JSON.parse(cachedComments)
+      } catch (error) {
+        console.log('Failed to parse cached comments:', error)
+      }
+    }
+    
+    // Merge daily threads with their comments
+    const mergedDailyThreads = data.daily_threads.map(thread => {
+      // Find comments for this thread
+      const threadWithComments = commentsData.find(ct => ct.reddit_id === thread.reddit_id)
+      return {
+        ...thread,
+        top_comments: threadWithComments?.top_comments || thread.top_comments || []
+      }
+    })
+    
     // Transform regular posts for frontend
     const transformedPosts = data.posts.map((post, index) => ({
       id: post.reddit_id,
@@ -85,8 +131,8 @@ export async function GET() {
       sentiment: 'neutral' as const
     }))
 
-    // Transform daily threads
-    const transformedThreads = (data.daily_threads || []).map((thread, index) => ({
+    // Transform daily threads with merged comments
+    const transformedThreads = mergedDailyThreads.map((thread, index) => ({
       id: thread.reddit_id,
       title: thread.title,
       author: thread.author,

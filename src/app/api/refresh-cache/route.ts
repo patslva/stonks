@@ -76,28 +76,67 @@ async function fetchTopComments(permalink: string): Promise<RedditComment[]> {
   }
 }
 
-async function refreshCache() {
+async function refreshCache(skipComments: boolean = false) {
   try {
+    console.log(`=== Starting cache refresh (skipComments: ${skipComments}) ===`)
+    
     // Initialize Redis client
+    console.log('Initializing Redis connection...')
     const redis = new Redis(process.env.REDIS_URL!, {
       enableReadyCheck: false,
       maxRetriesPerRequest: 1,
     })
     
-    // Fetch hot posts from r/wallstreetbets using Reddit API
-    const response = await fetch('https://www.reddit.com/r/wallstreetbets/hot.json?limit=25', {
-      headers: {
-        'User-Agent': 'web:stonks-app:v1.0.0 (by /u/your-username)',
-        'Accept': 'application/json',
-        'Accept-Language': 'en-US,en;q=0.9'
-      }
-    })
+    // Fetch hot posts from r/wallstreetbets using Reddit API with timeout and retry
+    console.log('Fetching Reddit posts...')
+    let response;
+    let attempt = 0;
+    const maxAttempts = 3;
     
-    if (!response.ok) {
-      throw new Error(`Reddit API failed: ${response.status}`)
+    while (attempt < maxAttempts) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+        
+        response = await fetch('https://www.reddit.com/r/wallstreetbets/hot.json?limit=25', {
+          headers: {
+            'User-Agent': 'web:stonks-app:v1.0.0 (by /u/your-username)',
+            'Accept': 'application/json',
+            'Accept-Language': 'en-US,en;q=0.9'
+          },
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (response.ok) {
+          console.log(`Reddit API success on attempt ${attempt + 1}`);
+          break;
+        } else {
+          console.log(`Reddit API failed with status ${response.status} on attempt ${attempt + 1}`);
+          throw new Error(`Reddit API failed: ${response.status}`);
+        }
+      } catch (error: any) {
+        attempt++;
+        console.log(`Attempt ${attempt} failed:`, error.message);
+        
+        if (attempt >= maxAttempts) {
+          throw new Error(`Reddit API failed after ${maxAttempts} attempts: ${error.message}`);
+        }
+        
+        // Wait before retry (exponential backoff)
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+      }
     }
     
+    // TypeScript safety check
+    if (!response) {
+      throw new Error('Failed to get response after all attempts');
+    }
+    
+    console.log('Parsing Reddit response...')
     const redditData = await response.json()
+    console.log(`Found ${redditData.data.children.length} posts from Reddit`)
     
     const posts_data: RedditPost[] = []
     const daily_threads: RedditPost[] = []
@@ -137,16 +176,25 @@ async function refreshCache() {
       )
       
       if (isDailyThread) {
-        // Fetch top comments for daily threads
-        const topComments = await fetchTopComments(post.permalink)
-        post_data.top_comments = topComments
+        // Fetch top comments for daily threads (skip during cron for performance)
+        if (!skipComments) {
+          console.log('Fetching comments for daily thread:', post.title.substring(0, 50) + '...')
+          const topComments = await fetchTopComments(post.permalink)
+          post_data.top_comments = topComments
+        } else {
+          console.log('Skipping comments for daily thread (cron mode):', post.title.substring(0, 50) + '...')
+          post_data.top_comments = []
+        }
         daily_threads.push(post_data)
       } else {
         posts_data.push(post_data)
       }
     }
     
+    console.log(`Processing complete: ${posts_data.length} regular posts, ${daily_threads.length} daily threads`)
+    
     if (posts_data.length === 0) {
+      console.log('No posts to cache, returning early')
       return NextResponse.json({
         success: true,
         message: 'No new posts to process',
@@ -154,20 +202,44 @@ async function refreshCache() {
       })
     }
     
-    // Store in Redis cache with 24-hour expiration (for cron setup)
-    const cache_data: CacheData = {
+    // Store in Redis with separate keys for posts and comments
+    console.log('Storing data in Redis...')
+    
+    // Always cache posts (24-hour TTL for cron)
+    const posts_cache: CacheData = {
       posts: posts_data,
-      daily_threads: daily_threads,
+      daily_threads: daily_threads.map(thread => ({
+        ...thread,
+        top_comments: [] // Posts cache doesn't include comments
+      })),
       last_updated: new Date().toISOString(),
       total_posts: posts_data.length
     }
     
-    // Store with 24-hour TTL (86400 seconds) for daily cron
     await redis.setex(
       'wsb:hot_posts',
       86400,  // 24 hours
-      JSON.stringify(cache_data)
+      JSON.stringify(posts_cache)
     )
+    
+    // Cache daily comments separately if we fetched them (shorter TTL)
+    if (!skipComments && daily_threads.some(thread => thread.top_comments && thread.top_comments.length > 0)) {
+      console.log('Storing daily thread comments separately...')
+      const comments_cache = daily_threads.filter(thread => thread.top_comments && thread.top_comments.length > 0)
+      
+      await redis.setex(
+        'wsb:daily_comments',
+        14400,  // 4 hours TTL
+        JSON.stringify(comments_cache)
+      )
+      
+      // Store comment cache timestamp for age checking
+      await redis.setex(
+        'wsb:comments_updated',
+        14400,  // Same TTL as comments
+        new Date().toISOString()
+      )
+    }
     
     // Store metadata
     await redis.setex(
@@ -177,7 +249,10 @@ async function refreshCache() {
     )
     
     // Close Redis connection
+    console.log('Closing Redis connection')
     redis.disconnect()
+    
+    console.log('=== Cache refresh completed successfully ===');
     
     return NextResponse.json({
       success: true,
@@ -213,7 +288,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   
-  return await refreshCache();
+  console.log('Running cron job - skipping comments for performance');
+  return await refreshCache(true); // Skip comments during cron
 }
 
 // Handle POST requests (for manual triggers)
