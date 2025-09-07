@@ -129,6 +129,11 @@ async function refreshCache(skipComments: boolean = false) {
       }
     }
     
+    // TypeScript safety check
+    if (!response) {
+      throw new Error('Failed to get response after all attempts');
+    }
+    
     console.log('Parsing Reddit response...')
     const redditData = await response.json()
     console.log(`Found ${redditData.data.children.length} posts from Reddit`)
@@ -197,21 +202,44 @@ async function refreshCache(skipComments: boolean = false) {
       })
     }
     
-    // Store in Redis cache with 24-hour expiration (for cron setup)
-    const cache_data: CacheData = {
+    // Store in Redis with separate keys for posts and comments
+    console.log('Storing data in Redis...')
+    
+    // Always cache posts (24-hour TTL for cron)
+    const posts_cache: CacheData = {
       posts: posts_data,
-      daily_threads: daily_threads,
+      daily_threads: daily_threads.map(thread => ({
+        ...thread,
+        top_comments: [] // Posts cache doesn't include comments
+      })),
       last_updated: new Date().toISOString(),
       total_posts: posts_data.length
     }
     
-    // Store with 24-hour TTL (86400 seconds) for daily cron
-    console.log('Storing data in Redis...')
     await redis.setex(
       'wsb:hot_posts',
       86400,  // 24 hours
-      JSON.stringify(cache_data)
+      JSON.stringify(posts_cache)
     )
+    
+    // Cache daily comments separately if we fetched them (shorter TTL)
+    if (!skipComments && daily_threads.some(thread => thread.top_comments && thread.top_comments.length > 0)) {
+      console.log('Storing daily thread comments separately...')
+      const comments_cache = daily_threads.filter(thread => thread.top_comments && thread.top_comments.length > 0)
+      
+      await redis.setex(
+        'wsb:daily_comments',
+        14400,  // 4 hours TTL
+        JSON.stringify(comments_cache)
+      )
+      
+      // Store comment cache timestamp for age checking
+      await redis.setex(
+        'wsb:comments_updated',
+        14400,  // Same TTL as comments
+        new Date().toISOString()
+      )
+    }
     
     // Store metadata
     await redis.setex(
