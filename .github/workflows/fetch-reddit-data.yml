@@ -1,0 +1,37 @@
+name: Fetch Reddit Data Every 30 Minutes
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+jobs:
+  fetch-reddit-data:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+          
+      - name: Install dependencies
+        run: pnpm install
+        
+      - name: Fetch Reddit data and update Redis
+        env:
+          # Reddit OAuth credentials
+          REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
+          REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
+          
+          # Redis credentials
+          REDIS_URL: ${{ secrets.REDIS_URL }}
+          
+        run: pnpm exec tsx scripts/fetch-reddit-data.ts
