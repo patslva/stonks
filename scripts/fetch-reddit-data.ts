@@ -10,6 +10,14 @@ interface RedditToken {
   expires_at: number
 }
 
+interface RedditComment {
+  author: string
+  body: string
+  score: number
+  created_utc: number
+  permalink: string
+}
+
 interface RedditPost {
   reddit_id: string
   title: string
@@ -20,7 +28,7 @@ interface RedditPost {
   permalink: string
   created_utc: number
   subreddit: string
-  top_comments: never[]
+  top_comments: RedditComment[]
 }
 
 interface CacheData {
@@ -82,6 +90,52 @@ async function getRedditAccessToken(): Promise<string> {
   } catch (error: any) {
     log.error('Failed to get Reddit OAuth token:', error.message)
     throw error
+  }
+}
+
+async function fetchTopComments(permalink: string): Promise<RedditComment[]> {
+  try {
+    const token = await getRedditAccessToken()
+    
+    const commentsUrl = `https://oauth.reddit.com${permalink}?sort=top&limit=5`
+    const response = await fetch(commentsUrl, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'User-Agent': 'web:stonks-app:v1.0.0 (by /u/DueIndividual6973)',
+        'Accept': 'application/json'
+      }
+    })
+    
+    if (!response.ok) {
+      return []
+    }
+    
+    const data = await response.json()
+    
+    const commentsData = data[1]?.data?.children || []
+    
+    const topComments: RedditComment[] = []
+    
+    for (const comment of commentsData.slice(0, 5)) {
+      const commentData = comment.data
+      
+      if (!commentData.body || commentData.body === '[deleted]' || commentData.author === 'AutoModerator') {
+        continue
+      }
+      
+      topComments.push({
+        author: commentData.author,
+        body: commentData.body.length > 200 ? commentData.body.substring(0, 200) + '...' : commentData.body,
+        score: commentData.score,
+        created_utc: commentData.created_utc,
+        permalink: `https://reddit.com${commentData.permalink}`
+      })
+    }
+    
+    return topComments
+    
+  } catch (error) {
+    return []
   }
 }
 
@@ -167,6 +221,9 @@ async function fetchRedditPosts(): Promise<CacheData> {
       )
       
       if (isDailyThread) {
+        log.info('Fetching comments for daily thread:', post.title.substring(0, 50) + '...')
+        const topComments = await fetchTopComments(post.permalink)
+        post_data.top_comments = topComments
         daily_threads.push(post_data)
       } else {
         posts_data.push(post_data)
